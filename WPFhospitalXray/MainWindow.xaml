@@ -1,0 +1,37 @@
+﻿<Window x:Class="WPFhospitalXray.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:local="clr-namespace:WPFhospitalXray"
+        mc:Ignorable="d"
+        Title="MainWindow" Background="#F2F6FF" Height="650" Width="1000">
+
+    <Grid>
+        <Border Background="White" Width="350" Height="260" CornerRadius="7">
+
+            <StackPanel>
+                <TextBlock Margin="0 10 0 0" FontFamily="Arial" Text="MEDIRAJ" VerticalAlignment="Center" FontSize="18" FontWeight="Bold" Foreground="#526681" HorizontalAlignment="Center"/>
+                <TextBlock HorizontalAlignment="Center" Margin="0 5 0 0"  Text="Введіть свої данні для входу в систему" Foreground="#526681"/>
+
+
+
+                <TextBox materialDesign:HintAssist.Hint="Логін" Margin="10 30 10 10" Style="{StaticResource MaterialDesignFloatingHintTextBox}"/>
+                <PasswordBox materialDesign:HintAssist.Hint="Пароль" Margin="10 0 10 10" Style="{StaticResource MaterialDesignFloatingHintPasswordBox}"/>
+
+
+                <Grid Margin="30 10 30 0">
+                    <Button Content="Ввійти в систему" Foreground="White" Background="#4B7DC0" BorderThickness="0" VerticalAlignment="Center" />
+                </Grid>
+
+                
+
+            </StackPanel>
+
+
+
+        </Border>
+
+    </Grid>
+</Window>

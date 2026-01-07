@@ -1,0 +1,81 @@
+﻿<Window x:Class="WPFhospitalXray.AdminPanel"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WPFhospitalXray"
+        mc:Ignorable="d"
+        Title="AdminPanel" Height="600" Width="950" Background="#F2F6FF"  ResizeMode="CanMinimize">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- верхня панель з кнопками -->
+            <RowDefinition Height="*"/>
+            <!-- DataGrid займає всю решту -->
+        </Grid.RowDefinitions>
+
+        <!-- верхні кнопки -->
+        <Grid Grid.Row="0">
+            <Menu>
+                <MenuItem x:Name="MedStuff" Background="#4B7DC0" Header="Мед персонал" HorizontalAlignment="Left">
+                    <MenuItem.Resources>
+                        <Style TargetType="MenuItem">
+                            <Setter Property="Background" Value="#4B7DC0"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#FF444444"/>
+                                    <Setter Property="Foreground" Value="Black"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Foreground" Value="Black"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </MenuItem.Resources>
+                    <MenuItem Header="Створити" Click="CreateStuff_btn"/>
+                    <MenuItem Header="Редагувати або видалити" Click="EditStuff_btn"/>
+                </MenuItem>
+                <MenuItem x:Name="Patients" Background="#4B7DC0" Header="Пацієнти" HorizontalAlignment="Left">
+                    <MenuItem.Resources>
+                        <Style TargetType="MenuItem">
+                            <Setter Property="Background" Value="#4B7DC0"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#FF444444"/>
+                                    <Setter Property="Foreground" Value="Black"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Foreground" Value="Black"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </MenuItem.Resources>
+                    <MenuItem Header="Створити" />
+                    <MenuItem Header="Редагувати або видалити" />
+                </MenuItem>
+            </Menu>
+        </Grid>
+
+        <!-- таблиця -->
+        <DataGrid x:Name="DBGrid"
+                  Grid.Row="1"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  Margin="10 80 10 10"
+                  VerticalAlignment="Stretch"
+                  HorizontalAlignment="Stretch">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Дата створення"   Binding="{Binding CreatingDate, StringFormat=d}"/>
+                <DataGridTextColumn Header="ПІБ пацієнта"   Binding="{Binding FullNamePatient}"/>
+                <DataGridTextColumn Header="Id пацієнта"   Binding="{Binding Id}"/>
+                <DataGridTextColumn Header="Стать"  Binding="{Binding Sex}"/>
+                <DataGridTextColumn Header="Дата народження"   Binding="{Binding DayOfBirth, StringFormat=d}"/>
+                <DataGridTextColumn Header="Обстеження"  Binding="{Binding Examination}"/>
+                <DataGridTextColumn Header="Статус"  Binding="{Binding Status}"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</Window>
