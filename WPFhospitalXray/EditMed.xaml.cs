@@ -1,4 +1,6 @@
-﻿
+﻿using BLL.DTOs; // Або BLL.DTOs.AppUsers, перевір, де лежить StaffListDto
+using BLL.DTOs.AppUsers;
+using BLL.Interface;
 using DAL.DBContext;
 using DAL.Entity;
 using System;
@@ -15,89 +17,103 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
-
 namespace WPFhospitalXray
 {
-    /// <summary>
-    /// Interaction logic for EditMed.xaml
-    /// </summary>
     public partial class EditMed : Window
     {
-        //public List<MedStuffListDto> MedStuffs = new List<MedStuffListDto>();
-        //private readonly MedStuffService _medStuffService;
-        //private MedStuffEditDto _selectedMedStuff;
-        public EditMed()
+        // Наш новий крутий сервіс
+        private readonly IApplicationUserService _userService;
+
+        // Список для зберігання даних таблиці
+        public List<StaffListDto> MedStuffs = new List<StaffListDto>();
+
+        // DI автоматично передасть сюди готовий IApplicationUserService
+        public EditMed(IApplicationUserService userService)
         {
             InitializeComponent();
+            _userService = userService;
 
-            //var context = new ApplicationDBContext();// або через DI, якщо налаштовано
-            //_medStuffService = new MedStuffService(context);
-
-
-
-            LoadMedStuffs();
-
-
+            // Щоб викликати асинхронний метод при завантаженні вікна,
+            // краще використовувати подію Loaded
+            this.Loaded += EditMed_Loaded;
         }
-        private void LoadMedStuffs()
+
+        private async void EditMed_Loaded(object sender, RoutedEventArgs e)
         {
-            //MedStuffs = _medStuffService.GetAllForList();
-            //DBStuff.ItemsSource = MedStuffs;
+            await LoadMedStuffsAsync();
         }
-        private void EditStuff_btn(object sender, RoutedEventArgs e)
+
+        // Асинхронний метод для завантаження списку
+        private async Task LoadMedStuffsAsync()
         {
-            //if (DBStuff.SelectedItem is MedStuffListDto selected)
-            //{
-            //    // Тепер selected.Id буде доступний
-            //    var medStuffToEdit = _medStuffService.GetMedStuffForEdit(selected.Id);
-
-            //    if (medStuffToEdit != null)
-            //    {
-            //        var editWindow = new EditingStuff(_medStuffService, medStuffToEdit, LoadMedStuffs);
-            //        editWindow.Owner = this;
-            //        editWindow.ShowDialog();
-            //    }
-            //    else
-            //    {
-            //        MessageBox.Show("Оберіть працівника для редагування", "Увага",
-            //            MessageBoxButton.OK, MessageBoxImage.Warning);
-            //    }
-            //}
+            try
+            {
+                // Беремо дані з бази через наш сервіс
+                MedStuffs = await _userService.GetAllStaffAsync();
+                DBStuff.ItemsSource = MedStuffs;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка завантаження працівників:\n{ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        private void DeleteStuff_btn(object sender, RoutedEventArgs e)
+        private async void EditStuff_btn(object sender, RoutedEventArgs e)
         {
-            //if (DBStuff.SelectedItem is MedStuffListDto selected)
-            //{
-            //    // Додай підтвердження видалення
-            //    var result = MessageBox.Show($"Ви впевнені, що хочете видалити {selected.FullName}?",
-            //                               "Підтвердження видалення",
-            //                               MessageBoxButton.YesNo,
-            //                               MessageBoxImage.Warning);
+            // Перевіряємо, чи виділено рядок і приводимо до нашого StaffListDto
+            if (DBStuff.SelectedItem is StaffListDto selected)
+            {
+                // Передаємо Id у вікно редагування (зверни увагу, що у вікні EditingStuff теж треба буде поміняти конструктор)
+                var editWindow = new EditingStuff(_userService, selected.Id);
+                editWindow.Owner = this;
+                editWindow.ShowDialog();
 
-            //    if (result == MessageBoxResult.Yes)
-            //    {
-            //        try
-            //        {
-            //            _medStuffService.DeleteMedStuff(selected.Id); // ← Передаємо ID!
-            //            LoadMedStuffs(); // ← Ось це оновлює список на екрані!
+                // Оновлюємо таблицю після того, як вікно редагування закриється
+                await LoadMedStuffsAsync();
+            }
+            else
+            {
+                MessageBox.Show("Оберіть працівника для редагування", "Увага", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
 
-            //            MessageBox.Show("Працівника успішно видалено!", "Успіх",
-            //                           MessageBoxButton.OK, MessageBoxImage.Information);
-            //        }
-            //        catch (Exception ex)
-            //        {
-            //            MessageBox.Show($"Помилка при видаленні: {ex.Message}", "Помилка",
-            //                           MessageBoxButton.OK, MessageBoxImage.Error);
-            //        }
-            //    }
-            //}
-            //else
-            //{
-            //    MessageBox.Show("Оберіть працівника для видалення", "Увага",
-            //                   MessageBoxButton.OK, MessageBoxImage.Warning);
-            //}
+        private async void DeleteStuff_btn(object sender, RoutedEventArgs e)
+        {
+            if (DBStuff.SelectedItem is StaffListDto selected)
+            {
+                var result = MessageBox.Show($"Ви впевнені, що хочете видалити працівника {selected.FullName}?",
+                                             "Підтвердження видалення",
+                                             MessageBoxButton.YesNo,
+                                             MessageBoxImage.Warning);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    try
+                    {
+                        // Видаляємо через наш новий сервіс (який сам працює з Identity)
+                        await _userService.DeleteAsync(selected.Id);
+
+                        // Оновлюємо таблицю на екрані
+                        await LoadMedStuffsAsync();
+
+                        MessageBox.Show("Працівника успішно видалено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Помилка при видаленні:\n{ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+            else
+            {
+                MessageBox.Show("Оберіть працівника для видалення", "Увага", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+
+
+           
 
         }
+
+
     }
 }

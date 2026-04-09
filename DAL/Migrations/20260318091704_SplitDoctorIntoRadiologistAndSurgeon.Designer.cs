@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DAL.Migrations
 {
     [DbContext(typeof(ApplicationDBContext))]
-    [Migration("20251010155732_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260318091704_SplitDoctorIntoRadiologistAndSurgeon")]
+    partial class SplitDoctorIntoRadiologistAndSurgeon
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -111,26 +111,33 @@ namespace DAL.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("DoctorConclusion")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("DoctorId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<DateTime>("ExaminationDate")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("MedicalCardId")
                         .HasColumnType("int");
 
+                    b.Property<string>("RadiologistConclusion")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("RadiologistId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("SurgeonConclusion")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("SurgeonId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("DoctorId");
-
                     b.HasIndex("MedicalCardId");
+
+                    b.HasIndex("RadiologistId");
+
+                    b.HasIndex("SurgeonId");
 
                     b.ToTable("Examinations");
                 });
@@ -149,8 +156,9 @@ namespace DAL.Migrations
                     b.Property<DateTime>("LastUpdated")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("PatientId")
-                        .HasColumnType("int");
+                    b.Property<string>("PatientId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
@@ -198,11 +206,8 @@ namespace DAL.Migrations
 
             modelBuilder.Entity("DAL.Entity.Patient", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Address")
                         .IsRequired()
@@ -220,7 +225,7 @@ namespace DAL.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int>("MedicalCardId")
+                    b.Property<int?>("MedicalCardId")
                         .HasColumnType("int");
 
                     b.Property<string>("Phone")
@@ -378,21 +383,27 @@ namespace DAL.Migrations
 
             modelBuilder.Entity("DAL.Entity.Examination", b =>
                 {
-                    b.HasOne("DAL.Entity.ApplicationUser", "Doctor")
-                        .WithMany()
-                        .HasForeignKey("DoctorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("DAL.Entity.MedicalCard", "MedicalCard")
                         .WithMany("Examinations")
                         .HasForeignKey("MedicalCardId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Doctor");
+                    b.HasOne("DAL.Entity.ApplicationUser", "Radiologist")
+                        .WithMany()
+                        .HasForeignKey("RadiologistId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("DAL.Entity.ApplicationUser", "Surgeon")
+                        .WithMany()
+                        .HasForeignKey("SurgeonId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("MedicalCard");
+
+                    b.Navigation("Radiologist");
+
+                    b.Navigation("Surgeon");
                 });
 
             modelBuilder.Entity("DAL.Entity.MedicalCard", b =>

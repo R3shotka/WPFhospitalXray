@@ -16,12 +16,10 @@ namespace DAL.Entity
 
 
         public DateTime ExaminationDate { get; set; }
-        public string DoctorConclusion { get; set; }
-
-        public string DoctorId { get; set; }
-        public ApplicationUser Doctor { get; set; }
+        
 
         public List<MedicalImage> Images { get; set; } = new();
+        public List<Conclusion> Conclusions { get; set; } = new();
 
 
     }

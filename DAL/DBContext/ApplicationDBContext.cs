@@ -26,6 +26,7 @@ namespace DAL.DBContext
         public DbSet<MedicalCard> MedicalCards { get; set; }        // ← Додати
         public DbSet<Examination> Examinations { get; set; }        // ← Додати  
         public DbSet<MedicalImage> MedicalImages { get; set; }      // ← Додати
+        public DbSet<Conclusion> Conclusions { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -81,20 +82,36 @@ namespace DAL.DBContext
             {
                 entity.HasKey(e => e.Id);
 
-                entity.Property(e => e.DoctorConclusion)
-                      .HasMaxLength(1000);
-
                 // Зв'язок з MedicalCard
                 entity.HasOne(e => e.MedicalCard)
                       .WithMany(m => m.Examinations)
                       .HasForeignKey(e => e.MedicalCardId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+            builder.Entity<Conclusion>(entity =>
+            {
+                entity.HasKey(c => c.Id);
 
-                // Зв'язок з Doctor (ApplicationUser)
-                entity.HasOne(e => e.Doctor)
-                      .WithMany() // Додаси колекцію пізніше, якщо потрібно
-                      .HasForeignKey(e => e.DoctorId)
-                      .OnDelete(DeleteBehavior.Restrict); // Не видаляти обстеження при видаленні лікаря
+                entity.Property(c => c.ConclusionText)
+                      .IsRequired()
+                      .HasMaxLength(2000); // Дамо лікарям місце для тексту
+
+                // Зберігаємо Enum як текст
+                entity.Property(c => c.Type)
+                      .HasConversion<string>()
+                      .IsRequired();
+
+                // Зв'язок: один висновок належить одному обстеженню
+                entity.HasOne(c => c.Examination)
+                      .WithMany(e => e.Conclusions)
+                      .HasForeignKey(c => c.ExaminationId)
+                      .OnDelete(DeleteBehavior.Cascade); // Якщо видаляємо обстеження - видаляються і його висновки
+
+                // Зв'язок: який лікар написав
+                entity.HasOne(c => c.Doctor)
+                      .WithMany()
+                      .HasForeignKey(c => c.DoctorId)
+                      .OnDelete(DeleteBehavior.Restrict); // Знову захищаємо від помилки каскадного видалення юзерів
             });
 
             // MedicalImage конфігурація

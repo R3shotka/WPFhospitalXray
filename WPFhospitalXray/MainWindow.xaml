@@ -17,12 +17,12 @@
 
 
 
-                <TextBox materialDesign:HintAssist.Hint="Логін" Margin="10 30 10 10" Style="{StaticResource MaterialDesignFloatingHintTextBox}"/>
-                <PasswordBox materialDesign:HintAssist.Hint="Пароль" Margin="10 0 10 10" Style="{StaticResource MaterialDesignFloatingHintPasswordBox}"/>
+                <TextBox x:Name="LoginTextBox" materialDesign:HintAssist.Hint="Логін" Margin="10 30 10 10" Style="{StaticResource MaterialDesignFloatingHintTextBox}" TextChanged="TextBox_TextChanged"/>
+                <PasswordBox x:Name="PasswordTextBox" materialDesign:HintAssist.Hint="Пароль" Margin="10 0 10 10" Style="{StaticResource MaterialDesignFloatingHintPasswordBox}"/>
 
 
                 <Grid Margin="30 10 30 0">
-                    <Button Content="Ввійти в систему" Foreground="White" Background="#4B7DC0" BorderThickness="0" VerticalAlignment="Center" />
+                    <Button Content="Ввійти в систему" Foreground="White" Background="#4B7DC0" BorderThickness="0" VerticalAlignment="Center" Click="Button_Login_Click" />
                 </Grid>
 
                 

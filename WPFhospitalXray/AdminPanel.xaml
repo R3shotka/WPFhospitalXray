@@ -10,71 +10,60 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <!-- верхня панель з кнопками -->
             <RowDefinition Height="*"/>
-            <!-- DataGrid займає всю решту -->
         </Grid.RowDefinitions>
 
-        <!-- верхні кнопки -->
-        <Grid Grid.Row="0">
-            <Menu>
-                <MenuItem x:Name="MedStuff" Background="#4B7DC0" Header="Мед персонал" HorizontalAlignment="Left">
-                    <MenuItem.Resources>
-                        <Style TargetType="MenuItem">
-                            <Setter Property="Background" Value="#4B7DC0"/>
-                            <Setter Property="Foreground" Value="White"/>
-                            <Style.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#FF444444"/>
-                                    <Setter Property="Foreground" Value="Black"/>
-                                </Trigger>
-                                <Trigger Property="IsEnabled" Value="False">
-                                    <Setter Property="Foreground" Value="Black"/>
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </MenuItem.Resources>
-                    <MenuItem Header="Створити" Click="CreateStuff_btn"/>
-                    <MenuItem Header="Редагувати або видалити" Click="EditStuff_btn"/>
-                </MenuItem>
-                <MenuItem x:Name="Patients" Background="#4B7DC0" Header="Пацієнти" HorizontalAlignment="Left">
-                    <MenuItem.Resources>
-                        <Style TargetType="MenuItem">
-                            <Setter Property="Background" Value="#4B7DC0"/>
-                            <Setter Property="Foreground" Value="White"/>
-                            <Style.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#FF444444"/>
-                                    <Setter Property="Foreground" Value="Black"/>
-                                </Trigger>
-                                <Trigger Property="IsEnabled" Value="False">
-                                    <Setter Property="Foreground" Value="Black"/>
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </MenuItem.Resources>
-                    <MenuItem Header="Створити" />
-                    <MenuItem Header="Редагувати або видалити" />
-                </MenuItem>
-            </Menu>
-        </Grid>
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10" VerticalAlignment="Center">
+
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+
+                <Button x:Name="CreatePatientBtn" Content="➕ Створити пацієнта" 
+        Click="CreatePatient_btn" Margin="0,0,10,0" Padding="10,5"
+        Background="#4B7DC0" Foreground="White" BorderThickness="0"/>
+
+                <Button x:Name="EditPatientBtn" Content="✏️ Редагувати пацієнта" 
+        Click="EditPatient_btn" Margin="0,0,10,0" Padding="10,5"
+        IsEnabled="False" 
+        Background="#6785B0" Foreground="White" BorderThickness="0"/>
+
+                <Button x:Name="DeletePatientBtn" Content="🗑 Видалити пацієнта" 
+        Click="DeletePatient_btn" Margin="0,0,0,0" Padding="10,5" 
+        IsEnabled="False" 
+        Background="#FFE74C3C" Foreground="White" BorderThickness="0"/>
+
+            </StackPanel>
+
+            <Rectangle Width="1" Fill="#D0D0D0" Margin="10,0,20,0" Height="25"/>
+
+            <StackPanel x:Name="AdminStaffPanel" Orientation="Horizontal">
+                <Button Content="👥 Створити працівника" Click="CreateStuff_btn" 
+                    Margin="0,0,10,0" Padding="10,5"
+                    Background="#526681" Foreground="White" BorderThickness="0"/>
+
+                <Button Content="⚙️ Керування персоналом" Click="EditStuff_btn" 
+                    Padding="10,5"
+                    Background="#526681" Foreground="White" BorderThickness="0"/>
+            </StackPanel>
+        </StackPanel>
 
         <!-- таблиця -->
+
         <DataGrid x:Name="DBGrid"
                   Grid.Row="1"
                   AutoGenerateColumns="False"
                   IsReadOnly="True"
-                  Margin="10 80 10 10"
+                  Margin="10 40 10 10"
                   VerticalAlignment="Stretch"
-                  HorizontalAlignment="Stretch">
+                  HorizontalAlignment="Stretch"
+                  SelectionChanged="DBGrid_SelectionChanged">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Дата створення"   Binding="{Binding CreatingDate, StringFormat=d}"/>
-                <DataGridTextColumn Header="ПІБ пацієнта"   Binding="{Binding FullNamePatient}"/>
-                <DataGridTextColumn Header="Id пацієнта"   Binding="{Binding Id}"/>
-                <DataGridTextColumn Header="Стать"  Binding="{Binding Sex}"/>
-                <DataGridTextColumn Header="Дата народження"   Binding="{Binding DayOfBirth, StringFormat=d}"/>
-                <DataGridTextColumn Header="Обстеження"  Binding="{Binding Examination}"/>
-                <DataGridTextColumn Header="Статус"  Binding="{Binding Status}"/>
+                <DataGridTextColumn Header="Дата створення" Binding="{Binding CreatingDate}"/>
+                <DataGridTextColumn Header="ПІБ пацієнта" Binding="{Binding FullName}"/>
+                <DataGridTextColumn Header="Id пацієнта" Binding="{Binding Id}"/>
+                <DataGridTextColumn Header="Стать" Binding="{Binding Sex}"/>
+                <DataGridTextColumn Header="Дата народження" Binding="{Binding DateOfBirth}"/>
+                <DataGridTextColumn Header="Обстеження" Binding="{Binding ExaminationsCount}"/>
+                <DataGridTextColumn Header="Статус" Binding="{Binding Status}"/>
             </DataGrid.Columns>
         </DataGrid>
     </Grid>

@@ -22,7 +22,7 @@
                         <ComboBox x:Name="Job_combobox" Width="125">
                             <ComboBoxItem Content="Адміністратор"/>
                             <ComboBoxItem Content="Медсестра"/>
-                            <ComboBoxItem Content="Ортопед"/>
+                            <ComboBoxItem Content="Рентгенолог"/>
                         </ComboBox>
                     </StackPanel>
 

@@ -1,5 +1,7 @@
 ﻿
 using DAL.DBContext;
+using BLL.DTOs.AppUsers;
+using BLL.Interface;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,67 +24,87 @@ namespace WPFhospitalXray
     /// </summary>
     public partial class CreateMed : Window
     {
-        //private readonly MedStuffService _medStuffService;
-        //private readonly CreateMedStuffRequestDto createMedStuffRequestDto;
-        public CreateMed()
+        private readonly IApplicationUserService _userService;
+
+        public CreateMed(IApplicationUserService userService)
         {
             InitializeComponent();
 
+            _userService = userService;
             //var context = new ApplicationDBContext();
             //_medStuffService = new MedStuffService(context);
 
         }
-        private void Save_btn(object sender, RoutedEventArgs e)
+        private async void Save_btn(object sender, RoutedEventArgs e)
         {
-            //try
-            //{
-            //    var medStuffcreate = new CreateMedStuffRequestDto
-            //    {
-            //        FullName = FullName_textbox.Text,
-            //        Position = GetPositionFromDisplayName(Job_combobox.Text),
-            //        Sex = GetSexFromDisplayName(Sex_combobox.Text),
-            //        Login = Login_textbox.Text,
-            //        Password = Pass_textbox.Text
-            //    };
+            try
+            {
+                // Перевірка, чи всі поля заповнені (особливо випадаючі списки)
+                if (Job_combobox.SelectedItem == null || Sex_combobox.SelectedItem == null)
+                {
+                    MessageBox.Show("Будь ласка, оберіть посаду та стать!", "Увага", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
 
-            //    _medStuffService.CreateMedStuff(medStuffcreate);
+                // 2. Безпечно дістаємо текст з ComboBox
+                string selectedJob = (Job_combobox.SelectedItem as ComboBoxItem).Content.ToString();
+                string selectedSex = (Sex_combobox.SelectedItem as ComboBoxItem).Content.ToString();
 
-            //    MessageBox.Show("Працівника успішно створено!", "Успіх",
-            //           MessageBoxButton.OK, MessageBoxImage.Information);
+                var createStaffDto = new CreateStaffDto
+                {
+                    FullName = FullName_textbox.Text,
+                    Position = GetPositionFromDisplayName(selectedJob), // Перекладаємо для БД
+                    Sex = GetSexFromDisplayName(selectedSex),           // Перекладаємо для БД
+                    Login = Login_textbox.Text,
+                    Password = Pass_textbox.Text
+                };
 
-            //    this.Close();
-            //}
-            //catch (Exception ex)
-            //{
-            //    MessageBox.Show($"Помилка при створенні: {ex.Message}", "Помилка",
-            //        MessageBoxButton.OK, MessageBoxImage.Error);
-            //}
+                // 3. Додали await! Тепер чекаємо, поки БД реально збереже людину
+                await _userService.CreateAsync(createStaffDto);
+
+                MessageBox.Show("Працівника успішно створено!", "Успіх",
+                       MessageBoxButton.OK, MessageBoxImage.Information);
+
+                this.Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка при створенні:\n{ex.Message}", "Помилка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
 
         }
         public void Exit_btn(object sender, RoutedEventArgs e)
         {
             this.Close();
         }
-        //private PositionStuff GetPositionFromDisplayName(string displayName)
-        //{
-        //    return displayName switch
-        //    {
-        //        "Адміністратор" => PositionStuff.Administrator,
-        //        "Медсестра" => PositionStuff.Nurse,
-        //        "Ортопед" => PositionStuff.Orthopedist,
-        //        _ => PositionStuff.Administrator
-        //    };
-        //}
 
-        //private string GetSexFromDisplayName(string displayName)
-        //{
-        //    return displayName switch
-        //    {
-        //        "Чоловіча" => "Чоловік",
-        //        "Жіноча" => "Жінка",
-        //        _ => displayName
-        //    };
-        //}
+        // --- МЕТОДИ-ПЕРЕКЛАДАЧІ ---
+
+        private string GetPositionFromDisplayName(string displayName)
+        {
+            // Identity Roles зазвичай зберігаються англійською. 
+            // ЗАМІНИ ці англійські слова на ті назви ролей, які в тебе реально створені в базі!
+            return displayName switch
+            {
+                "Адміністратор" => "Admin",
+                "Медсестра" => "Nurse",
+                "Ортопед" => "Orthopedist", // або "Doctor" чи "Surgeon"
+                _ => "Nurse" // Значення за замовчуванням
+            };
+        }
+
+        private string GetSexFromDisplayName(string displayName)
+        {
+            // ЗАМІНИ "Male"/"Female" на ті значення, які є у твоєму ApplicationUser.TypeGender Enum!
+            // Наприклад, якщо там TypeGender.Man і TypeGender.Woman, пиши "Man" і "Woman"
+            return displayName switch
+            {
+                "Чоловіча" => "Ч",
+                "Жіноча" => "Ж",
+                _ => "Ч" // За замовчуванням
+            };
+        }
 
     }
 }

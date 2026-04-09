@@ -1,4 +1,5 @@
-﻿
+﻿using BLL.DTOs.Patients;
+using BLL.Interface; // Додаємо, щоб бачити IApplicationUserService
 using DAL.DBContext;
 using DAL.Entity;
 using System;
@@ -15,45 +16,137 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
-
 namespace WPFhospitalXray
 {
-    /// <summary>
-    /// Interaction logic for AdminPanel.xaml
-    /// </summary>
     public partial class AdminPanel : Window
     {
-        //public List<PatientDto> Patients = new List<PatientDto>();
-        //private readonly PatientService _patientService;
+        // Створюємо змінну для нашого сервісу
+        private readonly IApplicationUserService _userService;
+        private readonly IPatientService _patientService;
+        private readonly string _currentUserRole;
 
-
-        public AdminPanel()
+        // DI автоматично передасть сюди готовий IApplicationUserService при відкритті AdminPanel
+        public AdminPanel(IApplicationUserService userService, IPatientService patientService, string role)
         {
             InitializeComponent();
+            _userService = userService;
+            _patientService = patientService;
+            _currentUserRole = role;
 
-            // Створення DbContext та сервісу
-            //var context = new ApplicationDBContext();// або через DI, якщо налаштовано
-            //_patientService = new PatientService(context);
+            ApplyPermissions();
+            LoadPatientsAsync(); // Завантажуємо таблицю одразу при відкритті
+        }
+        private void ApplyPermissions()
+        {
+            if (_currentUserRole == "Nurse")
+            {
+                AdminStaffPanel.Visibility = Visibility.Collapsed;
+                this.Title = "Медсестра: Робота з пацієнтами";
+            }
+        }
 
-            //// Отримуємо пацієнтів з бази
-            //Patients = _patientService.GetAll();
-
-            //// Привʼязуємо до DataGrid
-            //DBGrid.ItemsSource = Patients;
-
-
-
+        private async void LoadPatientsAsync()
+        {
+            try
+            {
+                var patients = await _patientService.GetAllPatientsAsync();
+                DBGrid.ItemsSource = patients;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка завантаження даних: {ex.Message}");
+            }
         }
 
         private void CreateStuff_btn(object sender, RoutedEventArgs e)
         {
-            //var createWindow = new CreateMed();
-            //createWindow.ShowDialog();
+            // Вікно створення ми ще не переписували, тому залишаємо його поки старим способом
+            var createWindow = new CreateMed(_userService);
+            createWindow.ShowDialog();
         }
+
         private void EditStuff_btn(object sender, RoutedEventArgs e)
         {
-            //var editWindow = new EditMed();
-            //editWindow.ShowDialog();
+            // ТЕПЕР ПЕРЕДАЄМО СЕРВІС ЯК ПАРАМЕТР!
+            var editWindow = new EditMed(_userService);
+            editWindow.ShowDialog();
+        }
+
+
+        // ==========================================
+        // КНОПКИ ДЛЯ ПАЦІЄНТІВ
+        // ==========================================
+        private void CreatePatient_btn(object sender, RoutedEventArgs e)
+        {
+            var createWin = new CreatePatient(_patientService);
+
+            // 2. Відкриваємо його як модальне вікно (щоб користувач не міг клікати мишкою поза ним)
+            createWin.ShowDialog();
+
+            // 3. Коли вікно закриється (пацієнт буде збережений), ми одразу оновлюємо таблицю!
+            LoadPatientsAsync();
+        }
+
+        private void EditPatient_btn(object sender, RoutedEventArgs e)
+        {
+            var selectedPatient = DBGrid.SelectedItem as PatientsListDto;
+
+            // 2. Перевіряємо, чи дійсно хтось вибраний (щоб не було помилки)
+            if (selectedPatient != null)
+            {
+                // 3. ПЕРЕДАЧА ID! 
+                // Ми беремо selectedPatient.Id (номер паспорта) і передаємо його прямо в конструктор нового вікна
+                var editWin = new EditPatient(_patientService, selectedPatient.Id);
+
+                editWin.ShowDialog();
+
+                // Оновлюємо таблицю після того, як вікно редагування закриється
+                LoadPatientsAsync();
+            }
+        }
+
+        private async void DeletePatient_btn(object sender, RoutedEventArgs e)
+        {
+            if (DBGrid.SelectedItem is PatientsListDto selectedPatient)
+            {
+                // Запитуємо підтвердження
+                var result = MessageBox.Show($"Ви дійсно хочете видалити пацієнта:\n{selectedPatient.FullName}?",
+                                             "Підтвердження видалення",
+                                             MessageBoxButton.YesNo,
+                                             MessageBoxImage.Warning);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    try
+                    {
+                        // Відправляємо ID на видалення в базу
+                        await _patientService.DeletePatientAsync(selectedPatient.Id);
+
+                        MessageBox.Show("Пацієнта успішно видалено.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                        // Оновлюємо таблицю (переконайся, що метод називається саме так, як у тебе)
+                        LoadPatientsAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Помилка при видаленні:\n{ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+        }   
+
+        // Поява кнопки "Редагувати" при кліку на таблицю
+        private void DBGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (EditPatientBtn != null && DeletePatient_btn != null)
+            {
+                // Перевіряємо, чи вибрано рядок (true або false)
+                bool hasSelection = DBGrid.SelectedItem != null;
+
+                // Вмикаємо або вимикаємо (сірий колір) обидві кнопки
+                EditPatientBtn.IsEnabled = hasSelection;
+                DeletePatientBtn.IsEnabled = hasSelection;
+            }
         }
     }
 }

@@ -15,7 +15,7 @@ namespace DAL.Entity
 
 
         // Зв'язок з пацієнтом (One-to-One)
-        public int PatientId { get; set; }
+        public string PatientId { get; set; }
         public Patient Patient { get; set; }
 
 

@@ -10,7 +10,7 @@ namespace DAL.Entity
     public class Patient
     {
 
-        public int Id { get; set; }
+        public string Id { get; set; }
         public string FullNamePatient { get; set; } = string.Empty;
         public TypeGender Sex { get; set; }
         public DateTime DateOfBirth { get; set; }
@@ -20,7 +20,7 @@ namespace DAL.Entity
 
 
         // Зв'язок з медкартою
-        public int MedicalCardId { get; set; }
+        public int? MedicalCardId { get; set; }
         public MedicalCard MedicalCard { get; set; }
    
         public string Status { get; set; } = string.Empty;
