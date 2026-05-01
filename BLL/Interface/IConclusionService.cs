@@ -16,5 +16,7 @@ namespace BLL.Interface
 
         // Видалити висновок (раптом лікар помилився)
         Task DeleteConclusionAsync(int id);
+
+        Task SaveOrUpdateConclusionAsync(int examinationId, string currentRole, string text, string doctorId);
     }
 }

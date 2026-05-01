@@ -36,8 +36,33 @@ namespace WPFhospitalXray
             // 2. Реєструємо нашу бізнес-логіку персоналу (BLL)
             services.AddScoped<IApplicationUserService, ApplicationUserService>();
 
-            services.AddTransient<IPatient, PatientRepository>();
-            services.AddTransient<IPatientService, PatientService>();
+            services.AddScoped<IPatient, PatientRepository>();
+            services.AddScoped<IPatientService, PatientService>();
+
+            // --- МЕДИЧНІ КАРТКИ ---
+            services.AddScoped<IMedicalCard, MedicalCardRepository>();
+            services.AddScoped<IMedicalCardService, MedicalCardService>();
+
+            // --- ВИСНОВКИ (Conclusions) ---
+            // (Перевір, чи правильно я написав назву твого інтерфейсу DAL для висновків)
+            services.AddScoped<IConclusion, ConclusionRepository>();
+            services.AddScoped<IConclusionService, ConclusionService>();
+
+            services.AddScoped<IExamination, ExaminationRepository>();
+            services.AddScoped<IExaminationService, ExaminationService>();
+
+            // У шарі DAL:
+            services.AddScoped<IMedicalImage, MedicalImageRepository>();
+
+            // У шарі BLL:
+            services.AddScoped<IMedicalImageService, MedicalImageService>();
+
+            services.AddScoped<IAIAnalyzerService, AIAnalyzerService>();
+
+            services.AddScoped<IDatasetService, DatasetService>();
+
+            services.AddScoped<IRetrainingRequest, RetrainingRequestRepository>();
+            services.AddScoped<IRetrainingRequestService, RetrainingRequestService>();
 
             // ----------------------------------
 
@@ -45,6 +70,7 @@ namespace WPFhospitalXray
             services.AddTransient<MainWindow>();
             services.AddTransient<AdminPanel>(); // <--- ДОДАЙ ЦЕЙ РЯДОК
             services.AddTransient<EditMed>();
+            services.AddTransient<MedicalCardWindow>();
 
             // 💡 ПІДКАЗКА: Якщо в тебе вікна створення і редагування (рис. 2 і рис. 3) 
             // це окремі вікна, їх теж треба тут зареєструвати. Наприклад:

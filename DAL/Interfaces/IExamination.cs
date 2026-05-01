@@ -9,6 +9,7 @@ namespace DAL.Interfaces
 {
     public interface IExamination : IRepository<Examination, int>
     {
-        void SaveChanges();
+        // Отримуємо всі обстеження для конкретної медкартки
+        Task<List<Examination>> GetByMedicalCardIdAsync(int medicalCardId);
     }
 }

@@ -1,12 +1,13 @@
-﻿using DAL.Interfaces;
+﻿using DAL.DBContext;
+using DAL.Entity;
+using DAL.Interfaces;
+using DAL.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using DAL.Interfaces;
-using DAL.Entity;
-using DAL.DBContext;
 
 namespace DAL.Repositories
 {
@@ -20,62 +21,53 @@ namespace DAL.Repositories
             _dbContext = dBContext;
         }
 
-        public void Add(MedicalCard entity)
+        public async Task AddAsync(MedicalCard entity)
         {
-            _dbContext.MedicalCards.Add(entity);
-            _dbContext.SaveChanges();
+            await _dbContext.MedicalCards.AddAsync(entity);
+            await _dbContext.SaveChangesAsync();
         }
 
-        public Task AddAsync(MedicalCard entity)
+
+
+        public async Task UpdateAsync(MedicalCard entity)
         {
-            throw new NotImplementedException();
+            _dbContext.MedicalCards.Update(entity);
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Delete(int id)
+        public async Task DeleteAsync(int id)
         {
-            var medCard = _dbContext.MedicalCards.Find(id);
+            var medCard = await _dbContext.MedicalCards.FindAsync(id);
             if (medCard != null)
             {
                 _dbContext.MedicalCards.Remove(medCard);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public Task DeleteAsync(int id)
+        public async Task<List<MedicalCard>> GetAllAsync()
         {
-            throw new NotImplementedException();
+            var medCards = await _dbContext.MedicalCards
+                .Include(m => m.Patient)      // Підтягуємо дані пацієнта
+                .Include(m => m.Examinations) // Підтягуємо всі його обстеження
+                .ToListAsync();
+
+            return medCards;
         }
 
-        public List<MedicalCard> GetAll()
+        public async Task<MedicalCard?> GetByIdAsync(int id)
         {
-            return _dbContext.MedicalCards.ToList();
+            return await _dbContext.MedicalCards
+                .Include(m => m.Patient)
+                .Include(m => m.Examinations)
+                .FirstOrDefaultAsync(m => m.Id == id);
         }
-
-        public Task<List<MedicalCard>> GetAllAsync()
+        public async Task<MedicalCard?> GetByPatientIdAsync(string patientId)
         {
-            throw new NotImplementedException();
-        }
-
-        public MedicalCard? GetById(int id)
-        {
-            var medCard = _dbContext.MedicalCards.Find(id);
-            return medCard;
-        }
-
-        public Task<MedicalCard?> GetByIdAsync(int id)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Update(MedicalCard entity)
-        {
-            _dbContext.MedicalCards.Update(entity);
-            _dbContext.SaveChanges();
-        }
-
-        public Task UpdateAsync(MedicalCard entity)
-        {
-            throw new NotImplementedException();
+            return await _dbContext.MedicalCards
+                .Include(m => m.Patient)
+                .Include(m => m.Examinations)
+                .FirstOrDefaultAsync(m => m.PatientId == patientId);
         }
     }
 }

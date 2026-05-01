@@ -23,6 +23,7 @@
                             <ComboBoxItem Content="Адміністратор"/>
                             <ComboBoxItem Content="Медсестра"/>
                             <ComboBoxItem Content="Рентгенолог"/>
+                            <ComboBoxItem Content="Хірург"/>
                         </ComboBox>
                     </StackPanel>
 

@@ -28,6 +28,8 @@ namespace DAL.DBContext
         public DbSet<MedicalImage> MedicalImages { get; set; }      // ← Додати
         public DbSet<Conclusion> Conclusions { get; set; }
 
+        public DbSet<RetrainingRequest> RetrainingRequests { get; set; }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
@@ -150,6 +152,36 @@ namespace DAL.DBContext
 
                 entity.Property(u => u.CreatingDate)
                       .IsRequired();
+            });
+
+            builder.Entity<RetrainingRequest>(entity =>
+            {
+                // Вказуємо первинний ключ (хоча EF і так би здогадався)
+                entity.HasKey(r => r.Id);
+
+                // Зберігаємо статус як текст (наприклад "Pending"), а не як цифру (0)
+                entity.Property(r => r.Status)
+                      .IsRequired()
+                      .HasConversion<string>()
+                      .HasMaxLength(20);
+
+                // Обмежуємо довжину коментаря (щоб не писали цілі поеми в БД)
+                entity.Property(r => r.Comment)
+                      .HasMaxLength(1000);
+
+                // Явно вказуємо зв'язок з лікарем (User)
+                entity.HasOne(r => r.RequestByUser)
+                      .WithMany() // Якщо в класі User немає List<RetrainingRequest>, залишаємо порожнім
+                      .HasForeignKey(r => r.RequestByUserId)
+                      // Забороняємо видаляти лікаря, якщо в нього є створені запити (захист від помилок)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                // Явно вказуємо зв'язок з обстеженням (Examination)
+                entity.HasOne(r => r.Examination)
+                      .WithMany()
+                      .HasForeignKey(r => r.ExaminationId)
+                      // Якщо видалили обстеження - видаляємо і запит на його перевірку
+                      .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

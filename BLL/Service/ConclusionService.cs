@@ -13,6 +13,11 @@ namespace BLL.Service
     public class ConclusionService : IConclusionService
     {
         private readonly IConclusion _conclusionRepository;
+
+        public ConclusionService(IConclusion conclusionRepository)
+        {
+            _conclusionRepository = conclusionRepository;
+        }
         public async Task CreateConclusionAsync(CreateConclusionDto dto)
         {
             var conclusion = new Conclusion
@@ -52,6 +57,39 @@ namespace BLL.Service
                 ConclusionText = c.ConclusionText,
                 CreatedAt = c.CreatedAt.ToString("dd.MM.yyyy HH:mm")
             }).ToList();
+        }
+
+        public async Task SaveOrUpdateConclusionAsync(int examinationId, string currentRole, string text, string doctorId)
+        {
+            // 1. Визначаємо правильний тип (перетворюємо українську/англійську роль на Enum)
+            ConclusionType targetType = (currentRole == "Radiologist" || currentRole == "Рентгенолог")
+                                        ? ConclusionType.Radiologist
+                                        : ConclusionType.Surgeon;
+
+            // 2. Шукаємо, чи є вже такий висновок у цього обстеження
+            var allConclusions = await _conclusionRepository.GetByExaminationIdAsync(examinationId);
+            var existingConclusion = allConclusions.FirstOrDefault(c => c.Type == targetType);
+
+            if (existingConclusion != null)
+            {
+                // 3. Якщо вже є - просто оновлюємо текст!
+                existingConclusion.ConclusionText = text;
+
+                // Припускаю, що у твоєму репозиторії є метод UpdateAsync. Якщо ні - напиши, ми додамо.
+                await _conclusionRepository.UpdateAsync(existingConclusion);
+            }
+            else
+            {
+                // 4. Якщо немає - створюємо новий через твій DTO
+                var dto = new CreateConclusionDto
+                {
+                    ExaminationId = examinationId,
+                    DoctorId = doctorId,
+                    Type = targetType.ToString(), // "Radiologist" або "Surgeon"
+                    ConclusionText = text
+                };
+                await CreateConclusionAsync(dto);
+            }
         }
     }
 }

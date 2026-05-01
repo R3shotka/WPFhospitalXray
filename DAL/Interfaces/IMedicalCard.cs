@@ -9,6 +9,6 @@ namespace DAL.Interfaces
 {
     public interface IMedicalCard : IRepository<MedicalCard, int>
     {
-
+        Task<MedicalCard?> GetByPatientIdAsync(string patientId);
     }
 }

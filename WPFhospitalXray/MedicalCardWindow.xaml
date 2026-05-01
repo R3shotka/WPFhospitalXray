@@ -1,0 +1,147 @@
+﻿<Window x:Class="WPFhospitalXray.MedicalCardWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Медична карта пацієнта" Height="750" Width="1300" 
+        WindowStartupLocation="CenterScreen" Background="#F2F6FF"
+        WindowState="Maximized">
+    <Grid Margin="20">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="400" />
+        </Grid.ColumnDefinitions>
+
+        <Grid Grid.Column="0" Margin="0,0,10,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="0,0,0,10">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="140" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Label Content="Ім'я пацієнта:" Foreground="#333333" Grid.Row="0" Grid.Column="0" HorizontalContentAlignment="Right" Margin="5"/>
+                <TextBox x:Name="tb_PatientName" IsReadOnly="True" Grid.Row="0" Grid.Column="1" Foreground="Black" Background="White" BorderBrush="#D0D0D0" Margin="0,0,10,10" Padding="5"/>
+
+                <Label Content="Стать:" Foreground="#333333" Grid.Row="1" Grid.Column="0" HorizontalContentAlignment="Right" Margin="5"/>
+                <TextBox x:Name="tb_Gender" IsReadOnly="True" Grid.Row="1" Grid.Column="1" Foreground="Black" Background="White" BorderBrush="#D0D0D0" Margin="0,0,10,10" Padding="5"/>
+
+                <Label Content="Дата народження:" Foreground="#333333" Grid.Row="2" Grid.Column="0" HorizontalContentAlignment="Right" Margin="5"/>
+                <TextBox x:Name="tb_DateOfBirth" IsReadOnly="True" Grid.Row="2" Grid.Column="1" Foreground="Black" Background="White" BorderBrush="#D0D0D0" Margin="0,0,10,10" Padding="5"/>
+
+                <Label Content="Паспорт (ID):" Foreground="#333333" Grid.Row="3" Grid.Column="0" HorizontalContentAlignment="Right" Margin="5"/>
+                <TextBox x:Name="tb_PatientId" IsReadOnly="True" Grid.Row="3" Grid.Column="1" Foreground="Black" Background="White" BorderBrush="#D0D0D0" Margin="0,0,10,10" Padding="5"/>
+
+                <Label Content="Телефон:" Foreground="#333333" Grid.Row="4" Grid.Column="0" HorizontalContentAlignment="Right" Margin="5"/>
+                <TextBox x:Name="tb_Phone" IsReadOnly="True" Grid.Row="4" Grid.Column="1" Foreground="Black" Background="White" BorderBrush="#D0D0D0" Margin="0,0,10,10" Padding="5"/>
+
+                <Label Content="Адреса:" Foreground="#333333" Grid.Row="5" Grid.Column="0" HorizontalContentAlignment="Right" Margin="5"/>
+                <TextBox x:Name="tb_Address" IsReadOnly="True" Grid.Row="5" Grid.Column="1" Foreground="Black" Background="White" BorderBrush="#D0D0D0" Margin="0,0,10,10" Padding="5" TextWrapping="Wrap"/>
+            </Grid>
+
+            <Button x:Name="btn_DeletePatient" Grid.Row="1" Content="🗑 Видалити пацієнта" Height="30" Padding="15,0" Margin="140,0,0,20" Background="#FFE74C3C" Foreground="White" BorderThickness="0" Cursor="Hand" HorizontalAlignment="Left" Click="btn_DeletePatient_Click"/>
+
+            <StackPanel x:Name="sp_ActionButtons" Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,10">
+                <Button x:Name="btn_StartExamination" Content="➕ Нове обстеження" Height="30" Padding="15,0" Margin="0,0,10,0" Background="#4B7DC0" Foreground="White" BorderThickness="0" Cursor="Hand" Click="btn_StartExamination_Click"/>
+                <Button x:Name="btn_AddImage" Content="📷 Завантажити знімок" Height="30" Padding="15,0" Margin="0,0,10,0" Background="#6785B0" Foreground="White" BorderThickness="0" Cursor="Hand" Click="btn_AddImage_Click"/>
+                <Button x:Name="btn_DeleteExam" Content="🗑 Видалити обстеження" Height="30" Padding="15,0" Margin="0,0,10,0" Background="#E74C3C" Foreground="White" BorderThickness="0" Cursor="Hand" Click="btn_DeleteExam_Click"/>
+            </StackPanel>
+
+            <Label Content="Список обстежень:" Grid.Row="3" Foreground="#333333" FontWeight="Bold" Margin="0,0,0,5"/>
+
+            <DataGrid x:Name="dg_Examinations" Grid.Row="4" AutoGenerateColumns="False" IsReadOnly="True" 
+                      CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False"
+                      Background="White" Foreground="Black" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#D0D0D0"
+                      RowBackground="White" AlternatingRowBackground="#F9FBFD" BorderBrush="#D0D0D0"
+                      SelectionMode="Single" SelectionChanged="dg_Examinations_SelectionChanged">
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#526681"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="Padding" Value="5"/>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="№" Binding="{Binding Id}" Width="50" />
+                    <DataGridTextColumn Header="Дата" Binding="{Binding ExaminationDate}" Width="90" />
+
+                    <DataGridTextColumn Header="Висновок рентгенолога" Binding="{Binding RadiologistConclusion}" Width="*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextWrapping" Value="Wrap"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Margin" Value="5"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="Висновок хірурга" Binding="{Binding SurgeonConclusion}" Width="*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextWrapping" Value="Wrap"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Margin" Value="5"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTemplateColumn Header="Дія" Width="Auto">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="Перегляд" Background="#6785B0" Foreground="White" 
+                                        Padding="10,2" Cursor="Hand" BorderThickness="0" Margin="2"
+                                        Click="btn_ViewImage_Click"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+
+        <Grid Grid.Column="1" Margin="10,0,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="300"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" BorderBrush="#D0D0D0" BorderThickness="1" Background="#E8EEF5" Margin="0,0,0,15">
+                <Image x:Name="img_Preview" Stretch="Uniform" Cursor="Hand" MouseLeftButtonDown="img_Preview_MouseLeftButtonDown"/>
+            </Border>
+
+            <Grid x:Name="sp_ConclusionBlock" Grid.Row="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Row="0" Content="Висновок рентгенолога:" Foreground="#333333" FontWeight="Bold" Margin="0,0,0,2"/>
+                <TextBox x:Name="tb_RadiologistConclusion" Grid.Row="1" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                         Foreground="Black" Background="White" BorderBrush="#D0D0D0" Margin="0,0,0,10" Padding="5"/>
+
+                <Label Grid.Row="2" Content="План лікування (Хірург):" Foreground="#333333" FontWeight="Bold" Margin="0,0,0,2"/>
+                <TextBox x:Name="tb_SurgeonConclusion" Grid.Row="3" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                         Foreground="Black" Background="White" BorderBrush="#D0D0D0" Margin="0,0,0,15" Padding="5"/>
+
+                <Button x:Name="btn_SaveConclusion" Grid.Row="4" Content="💾 Зберегти" Height="35" Padding="15,0" 
+                        Background="#4B7DC0" Foreground="White" BorderThickness="0" Cursor="Hand" Click="btn_SaveConclusion_Click"/>
+            </Grid>
+        </Grid>
+
+    </Grid>
+</Window>

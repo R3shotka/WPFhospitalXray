@@ -89,8 +89,9 @@ namespace WPFhospitalXray
             {
                 "Адміністратор" => "Admin",
                 "Медсестра" => "Nurse",
-                "Ортопед" => "Orthopedist", // або "Doctor" чи "Surgeon"
-                _ => "Nurse" // Значення за замовчуванням
+                "Рентгенолог" => "Radiologist",
+                "Хірург" => "Surgeon", // або "Doctor" чи "Surgeon"
+                _ => "Nurse" // Значен ня за замовчуванням
             };
         }
 

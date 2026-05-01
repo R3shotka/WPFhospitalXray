@@ -9,6 +9,6 @@ namespace DAL.Interfaces
 {
     public interface IMedicalImage : IRepository<MedicalImage, int>
     {
-        void UpdateImagePath(int examinationImageId, string newImagePath);
+        Task UpdateImagePathAsync(int examinationId, string newImagePath);
     }
 }

@@ -1,11 +1,12 @@
-﻿using System;
+﻿using DAL.DBContext;
+using DAL.Entity;
+using DAL.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using DAL.DBContext;
-using DAL.Entity;
-using DAL.Interfaces;
 
 namespace DAL.Repositories
 {
@@ -13,73 +14,57 @@ namespace DAL.Repositories
     {
         private readonly ApplicationDBContext _dbContext;
 
-        public ExaminationRepository(ApplicationDBContext dBContext)
+        public ExaminationRepository(ApplicationDBContext dbContext)
         {
-            _dbContext = dBContext;
+            _dbContext = dbContext;
         }
 
-        public void Add(Examination entity)
+        public async Task AddAsync(Examination entity)
         {
-            _dbContext.Examinations.Add(entity);
-            _dbContext.SaveChanges();
+            await _dbContext.Examinations.AddAsync(entity);
+            await _dbContext.SaveChangesAsync();
         }
 
-        public Task AddAsync(Examination entity)
+        public async Task DeleteAsync(int id)
         {
-            throw new NotImplementedException();
-        }
-
-        public void Delete(int id)
-        {
-            var examination = _dbContext.Examinations.Find(id);
-            if (examination != null)
+            var entity = await _dbContext.Examinations.FindAsync(id);
+            if (entity != null)
             {
-                _dbContext.Examinations.Remove(examination);
-                _dbContext.SaveChanges();
+                _dbContext.Examinations.Remove(entity);
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public Task DeleteAsync(int id)
+        public async Task<List<Examination>> GetAllAsync()
         {
-            throw new NotImplementedException();
+            return await _dbContext.Examinations
+                .Include(e => e.Images)
+                .Include(e => e.Conclusions)
+                .ToListAsync();
         }
 
-        public List<Examination> GetAll()
+        public async Task<Examination?> GetByIdAsync(int id)
         {
-            var exams = _dbContext.Examinations;
-            return exams.ToList();
+            return await _dbContext.Examinations
+                .Include(e => e.Images)
+                .Include(e => e.Conclusions)
+                .FirstOrDefaultAsync(e => e.Id == id);
         }
 
-        public Task<List<Examination>> GetAllAsync()
-        {
-            throw new NotImplementedException();
-        }
-
-        public Examination? GetById(int id)
-        {
-            var examination = _dbContext.Examinations.Find(id);
-            return examination;
-        }
-
-        public Task<Examination?> GetByIdAsync(int id)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void SaveChanges()
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Update(Examination entity)
+        public async Task UpdateAsync(Examination entity)
         {
             _dbContext.Examinations.Update(entity);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public Task UpdateAsync(Examination entity)
+        public async Task<List<Examination>> GetByMedicalCardIdAsync(int medicalCardId)
         {
-            throw new NotImplementedException();
+            return await _dbContext.Examinations
+                .Include(e => e.Images)
+                .Include(e => e.Conclusions)
+                .Where(e => e.MedicalCardId == medicalCardId)
+                .ToListAsync();
         }
     }
 }
+

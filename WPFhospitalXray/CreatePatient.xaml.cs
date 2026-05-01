@@ -3,6 +3,7 @@ using BLL.Interface;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using BLL.DTOs.MedicalCards;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,10 +25,13 @@ namespace WPFhospitalXray
     public partial class CreatePatient : Window
     {
         private readonly IPatientService _patientService;
-        public CreatePatient(IPatientService patientService)
+        private readonly IMedicalCardService _medicalCardService;
+
+        public CreatePatient(IPatientService patientService, IMedicalCardService medicalCardService)
         {
             InitializeComponent();
             _patientService = patientService;
+            _medicalCardService = medicalCardService;
         }
 
         private async void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -72,7 +76,14 @@ namespace WPFhospitalXray
                 // 3. Якщо isValid == true, код йде далі до збереження
                 await _patientService.CreatePatientAsync(newPatient);
 
-                MessageBox.Show("Пацієнта успішно зареєстровано!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                // 5. МАГІЯ ТУТ: ОДРАЗУ СТВОРЮЄМО МЕДКАРТКУ ДЛЯ ЦЬОГО ПАСПОРТА
+                var newMedCard = new CreateMedicalCardDto
+                {
+                    PatientId = newPatient.Id
+                };
+                await _medicalCardService.CreateMedicalCardAsync(newMedCard);
+
+                MessageBox.Show("Пацієнта та його медичну картку успішно зареєстровано!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
                 this.Close();
             }
             catch (Exception ex)

@@ -1,0 +1,79 @@
+﻿<Window x:Class="WPFhospitalXray.XRayViewerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Перегляд рентгенівського знімка" Height="750" Width="1000"
+        WindowStartupLocation="CenterScreen" Background="#F2F6FF"
+        WindowState="Maximized"
+        SizeChanged="Window_SizeChanged">
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="White" Padding="15" CornerRadius="7" Margin="0,0,0,15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Button x:Name="btn_RunAI" Grid.Column="0" Content="🤖 Аналіз ШІ" 
+                        Height="40" Padding="20,0" FontSize="15" FontWeight="Bold" 
+                        Background="#4B7DC0" Foreground="White" BorderThickness="0"
+                        Cursor="Hand" Click="btn_RunAI_Click" Margin="0,0,20,0"/>
+
+                <CheckBox x:Name="cb_ShowMarkup" Grid.Column="1" Content="Показувати розмітку ШІ" 
+                          Foreground="#526681" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" 
+                          Visibility="Collapsed" Checked="cb_ShowMarkup_Checked" Unchecked="cb_ShowMarkup_Unchecked"/>
+
+                <TextBlock x:Name="tb_AIResult" Grid.Column="2" Foreground="#526681" 
+                           FontSize="15" FontWeight="Bold" VerticalAlignment="Center" 
+                           HorizontalAlignment="Right" TextWrapping="Wrap"/>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Background="White" CornerRadius="7" Padding="10">
+            <Grid x:Name="Grid_ImageContainer">
+
+                <Image x:Name="img_Viewer" Stretch="Uniform"/>
+
+                <Canvas x:Name="DrawingCanvas" 
+                        Background="Transparent"
+                        Visibility="Collapsed"
+                        Cursor="Cross"
+                        MouseDown="DrawingCanvas_MouseDown">
+
+                    <Polyline x:Name="DrawPolygon" Stroke="Red" StrokeThickness="3" Fill="#33FF0000"/>
+                </Canvas>
+
+                <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="15">
+
+                    <TextBox x:Name="tb_LiveLabel" IsReadOnly="True" 
+                             Background="#F2F6FF" Foreground="#526681" FontSize="12" 
+                             TextWrapping="Wrap" Margin="0,0,0,10" Padding="8"
+                             Visibility="Collapsed" Height="80" Width="300" 
+                             VerticalScrollBarVisibility="Auto" HorizontalAlignment="Right"/>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button x:Name="btn_StartManual" Content="✍️ Ручна розмітка" 
+                                Background="#526681" Foreground="White" Height="35" Padding="15,0"
+                                Margin="0,0,0,0" Click="btn_StartManual_Click"/>
+
+                        <Button x:Name="btn_ClearPoints" Content="❌ Очистити" 
+                                Background="#D32F2F" Foreground="White" Height="35" Padding="15,0"
+                                Margin="0,0,10,0" Visibility="Collapsed" Click="btn_ClearPoints_Click"/>
+
+                        <Button x:Name="btn_SaveForRetrain" Content="💾 Зберегти для навчання" 
+                                Background="#4CAF50" Foreground="White" Height="35" Padding="15,0"
+                                Visibility="Collapsed" Click="btn_SaveForRetrain_Click"/>
+                    </StackPanel>
+                </StackPanel>
+
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

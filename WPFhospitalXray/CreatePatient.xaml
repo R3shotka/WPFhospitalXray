@@ -6,7 +6,7 @@
         
         xmlns:local="clr-namespace:WPFhospitalXray"
         mc:Ignorable="d"
-           Title="EditPatient" Height="450" Width="800" Background="#F2F6FF">
+           Title="CreatePatient" Height="450" Width="800" Background="#F2F6FF">
     <Grid>
         <Border Background="White"
         Width="400"
@@ -19,7 +19,7 @@
 
                 <TextBlock Margin="0 20 0 10"
                    FontFamily="Arial"
-                   Text="Редагування пацієнта"
+                   Text="Створення медичної карти"
                    FontSize="18"
                    FontWeight="Bold"
                    Foreground="#526681"

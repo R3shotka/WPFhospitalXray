@@ -1,5 +1,6 @@
 ﻿using BLL.DTOs.Patients;
 using BLL.Interface; // Додаємо, щоб бачити IApplicationUserService
+using BLL.Service;
 using DAL.DBContext;
 using DAL.Entity;
 using System;
@@ -24,9 +25,20 @@ namespace WPFhospitalXray
         private readonly IApplicationUserService _userService;
         private readonly IPatientService _patientService;
         private readonly string _currentUserRole;
+        private readonly IMedicalCardService _medicalCardService;
+        private readonly IExaminationService _examinationService;
+        private readonly IMedicalImageService _imageService;
+        private readonly IConclusionService _conclusionService;
+        private readonly IAIAnalyzerService _aiAnalyzerService;
+        private readonly IDatasetService _datasetService;
+        private readonly IRetrainingRequestService _requestService;
+
+        private readonly string _currentUserId;
+
+        private IEnumerable<PatientsListDto> _allPatients;
 
         // DI автоматично передасть сюди готовий IApplicationUserService при відкритті AdminPanel
-        public AdminPanel(IApplicationUserService userService, IPatientService patientService, string role)
+        public AdminPanel(IApplicationUserService userService, IPatientService patientService, string role, IMedicalCardService medicalCardService, IExaminationService examinationService, IMedicalImageService imageService, IConclusionService conclusionService, string currentUserId, IAIAnalyzerService aIAnalyzerService, IDatasetService datasetService, IRetrainingRequestService requestService)
         {
             InitializeComponent();
             _userService = userService;
@@ -35,26 +47,94 @@ namespace WPFhospitalXray
 
             ApplyPermissions();
             LoadPatientsAsync(); // Завантажуємо таблицю одразу при відкритті
+            _medicalCardService = medicalCardService;
+            _examinationService = examinationService;
+            _imageService = imageService;
+            _conclusionService = conclusionService;
+            _currentUserId = currentUserId;
+            _aiAnalyzerService = aIAnalyzerService;
+            _datasetService = datasetService;
+            _requestService = requestService;
         }
         private void ApplyPermissions()
         {
-            if (_currentUserRole == "Nurse")
+            if (_currentUserRole == "Nurse" || _currentUserRole == "Медсестра")
             {
-                AdminStaffPanel.Visibility = Visibility.Collapsed;
+                AdminStaffPanel.Visibility = Visibility.Collapsed; // Ховаємо ШІ та Персонал
                 this.Title = "Медсестра: Робота з пацієнтами";
+            }
+            else if (_currentUserRole == "Radiologist" || _currentUserRole == "Рентгенолог" ||
+                     _currentUserRole == "Surgeon" || _currentUserRole == "Хірург")
+            {
+                PatientPanel.Visibility = Visibility.Collapsed;    // Ховаємо кнопки пацієнтів
+                AdminStaffPanel.Visibility = Visibility.Collapsed; // Ховаємо ШІ та Персонал
+                this.Title = $"{_currentUserRole}: Список пацієнтів";
+            }
+            else if (_currentUserRole == "Admin" || _currentUserRole == "Адміністратор")
+            {
+                PatientPanel.Visibility = Visibility.Collapsed;    // Ховаємо кнопки пацієнтів
+                this.Title = "Адміністратор: Керування клінікою та ШІ";
             }
         }
 
-        private async void LoadPatientsAsync()
+        // Обробник натискання для кнопки ШІ
+        private void OpenRetrainManager_Click(object sender, RoutedEventArgs e)
+        {
+            // Відкриваємо вікно керування датасетом
+            var retrainWindow = new RetrainManagerWindow(_requestService, _datasetService);
+            retrainWindow.ShowDialog();
+        }
+
+        private async Task LoadPatientsAsync()
         {
             try
             {
                 var patients = await _patientService.GetAllPatientsAsync();
-                DBGrid.ItemsSource = patients;
+
+                _allPatients = patients;
+                PerformSearch();
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Помилка завантаження даних: {ex.Message}");
+            }
+        }
+        private void btn_Search_Click(object sender, RoutedEventArgs e)
+        {
+            PerformSearch();
+        }
+
+        private void tb_Search_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            PerformSearch();
+        }
+
+        private void btn_ClearSearch_Click(object sender, RoutedEventArgs e)
+        {
+            tb_Search.Text = ""; // Очищаємо текст (це автоматично скине фільтр)
+        }
+
+        private void PerformSearch()
+        {
+            // Перевіряємо, чи список пацієнтів вже завантажився з бази
+            if (_allPatients == null) return;
+
+            string searchText = tb_Search.Text.ToLower().Trim();
+
+            if (string.IsNullOrEmpty(searchText))
+            {
+                // Якщо поле порожнє - показуємо весь список
+                DBGrid.ItemsSource = _allPatients;
+            }
+            else
+            {
+                // Миттєва фільтрація в оперативній пам'яті
+                var filteredList = _allPatients.Where(p =>
+                    (p.FullName != null && p.FullName.ToLower().Contains(searchText)) ||
+                    (p.Id != null && p.Id.ToLower().Contains(searchText))
+                ).ToList();
+
+                DBGrid.ItemsSource = filteredList;
             }
         }
 
@@ -76,18 +156,21 @@ namespace WPFhospitalXray
         // ==========================================
         // КНОПКИ ДЛЯ ПАЦІЄНТІВ
         // ==========================================
-        private void CreatePatient_btn(object sender, RoutedEventArgs e)
+        private async void CreatePatient_btn(object sender, RoutedEventArgs e)
         {
-            var createWin = new CreatePatient(_patientService);
+            var createWin = new CreatePatient(_patientService, _medicalCardService);
 
             // 2. Відкриваємо його як модальне вікно (щоб користувач не міг клікати мишкою поза ним)
             createWin.ShowDialog();
 
             // 3. Коли вікно закриється (пацієнт буде збережений), ми одразу оновлюємо таблицю!
-            LoadPatientsAsync();
+
+            tb_Search.Text = "";
+
+            await LoadPatientsAsync();
         }
 
-        private void EditPatient_btn(object sender, RoutedEventArgs e)
+        private async void EditPatient_btn(object sender, RoutedEventArgs e)
         {
             var selectedPatient = DBGrid.SelectedItem as PatientsListDto;
 
@@ -100,8 +183,10 @@ namespace WPFhospitalXray
 
                 editWin.ShowDialog();
 
+
+
                 // Оновлюємо таблицю після того, як вікно редагування закриється
-                LoadPatientsAsync();
+                await LoadPatientsAsync();
             }
         }
 
@@ -125,7 +210,7 @@ namespace WPFhospitalXray
                         MessageBox.Show("Пацієнта успішно видалено.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
 
                         // Оновлюємо таблицю (переконайся, що метод називається саме так, як у тебе)
-                        LoadPatientsAsync();
+                        await LoadPatientsAsync();
                     }
                     catch (Exception ex)
                     {
@@ -146,6 +231,40 @@ namespace WPFhospitalXray
                 // Вмикаємо або вимикаємо (сірий колір) обидві кнопки
                 EditPatientBtn.IsEnabled = hasSelection;
                 DeletePatientBtn.IsEnabled = hasSelection;
+            }
+        }
+
+        private async void DBGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            // 1. Перевірка ролі (щоб Адмін не міг відкрити)
+            if (_currentUserRole == "Admin" || _currentUserRole == "Адміністратор")
+            {
+                return;
+            }
+
+            // 2. Отримуємо вибраного пацієнта
+            if (DBGrid.SelectedItem is PatientsListDto selectedPatient)
+            {
+                // 3. СТВОРЮЄМО ВІКНО ПРАВИЛЬНО (через DI)
+                // Передаємо всі необхідні сервіси, які вже є в AdminPanel
+                var medicalCardWindow = new MedicalCardWindow(
+                    _patientService,
+                    _medicalCardService,
+                    _examinationService,
+                    _imageService,
+                    _conclusionService,
+                    _aiAnalyzerService,
+                    _datasetService,
+                    _requestService); // <— Якщо цього сервісу тут ще немає, додай його в конструктор AdminPanel!
+
+                // 4. Передаємо дані (ID та Роль)
+                medicalCardWindow.InitializeData(selectedPatient.Id, _currentUserRole, _currentUserId);
+
+                medicalCardWindow.ShowDialog();
+
+                tb_Search.Text = "";
+
+                await LoadPatientsAsync();
             }
         }
     }

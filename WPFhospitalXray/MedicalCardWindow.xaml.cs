@@ -1,0 +1,441 @@
+﻿using BLL.Interface;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
+using Microsoft.Win32; // Для вікна вибору файлу (OpenFileDialog)
+using System.IO;       // Для роботи з файлами (File.Exists)
+using System.Windows.Media.Imaging;
+
+namespace WPFhospitalXray
+{
+    public partial class MedicalCardWindow : Window
+    {
+        private readonly IPatientService _patientService;
+        private readonly IMedicalCardService _medicalCardService;
+        private readonly IExaminationService _examinationService;
+        private readonly IMedicalImageService _imageService;
+        private readonly IConclusionService _conclusionService;
+        private readonly IDatasetService _datasetService;
+        private readonly IRetrainingRequestService _requestService;
+
+        private string _currentRole;
+        private string _patientId;
+        private int _medicalCardId;
+
+        private string _currentUserId;
+
+        private readonly IAIAnalyzerService _aiService;
+        public MedicalCardWindow(
+            IPatientService patientService,
+            IMedicalCardService medicalCardService,
+            IExaminationService examinationService,
+            IMedicalImageService imageService,
+            IConclusionService conclusionService,
+            IAIAnalyzerService aiService,
+            IDatasetService datasetService,
+            IRetrainingRequestService requestService)
+        {
+            InitializeComponent();
+            _patientService = patientService;
+            _medicalCardService = medicalCardService;
+            _examinationService = examinationService;
+            _imageService = imageService;
+            _conclusionService = conclusionService;
+            _aiService = aiService;
+            _datasetService = datasetService;
+            _requestService = requestService;
+        }
+        // ЗРОБИЛИ МЕТОД ASYNC, щоб він міг чекати на дані з бази
+        public async void InitializeData(string patientId, string userRole, string userId)
+        {
+            _patientId = patientId;
+            _currentRole = userRole;
+
+            _currentUserId = userId;
+
+            // 1. Налаштовуємо кнопки
+            ConfigureUIForRole();
+
+            // 2. Підтягуємо дані пацієнта
+            await LoadPatientDataAsync();
+
+            // Пізніше розблокуємо це для таблиці:
+             await LoadExaminationsAsync();
+        }
+
+        private async Task LoadPatientDataAsync()
+        {
+            try
+            {
+                // Використовуємо твій існуючий метод, який повертає EditPatientDto
+                var patientDto = await _patientService.GetPatientByIdAsync(_patientId);
+
+                if (patientDto != null)
+                {
+                    tb_PatientId.Text = patientDto.Id;
+                    tb_PatientName.Text = patientDto.FullName;
+                    tb_Gender.Text = patientDto.Sex;
+
+                    // Якщо дата народження є, красиво її форматуємо
+                    if (patientDto.DateOfBirth != null)
+                    {
+                        tb_DateOfBirth.Text = patientDto.DateOfBirth.Value.ToString("dd.MM.yyyy");
+                    }
+
+                    // Заповнюємо нові поля
+                    tb_Phone.Text = patientDto.Phone;
+                    tb_Address.Text = patientDto.Address;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка при завантаженні даних пацієнта:\n{ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private async Task LoadExaminationsAsync()
+        {
+            try
+            {
+                // Використовуємо твій метод пошуку картки за PatientId!
+                var currentCard = await _medicalCardService.GetMedicalCardByPatientIdAsync(_patientId);
+
+                if (currentCard != null)
+                {
+                    _medicalCardId = currentCard.Id; // Зберігаємо ID картки для подальшої роботи
+
+                    // Дістаємо обстеження через наш сервіс
+                    var exams = await _examinationService.GetExaminationsByCardIdAsync(_medicalCardId);
+
+                    // Закидаємо їх у таблицю
+                    dg_Examinations.ItemsSource = exams.OrderByDescending(e => e.Id).ToList(); ;
+                }
+                else
+                {
+                    MessageBox.Show("У цього пацієнта ще немає медичної картки!", "Помилка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка при завантаженні обстежень:\n{ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ConfigureUIForRole()
+        {
+            // Спочатку скидаємо всі обмеження (білий фон, можна писати, можна ставити курсор)
+            tb_RadiologistConclusion.IsReadOnly = false;
+            tb_RadiologistConclusion.Focusable = true;
+            tb_RadiologistConclusion.Background = System.Windows.Media.Brushes.White;
+
+            tb_SurgeonConclusion.IsReadOnly = false;
+            tb_SurgeonConclusion.Focusable = true;
+            tb_SurgeonConclusion.Background = System.Windows.Media.Brushes.White;
+
+            if (_currentRole == "Nurse" || _currentRole == "Медсестра")
+            {
+                // Медсестра бачить ТІЛЬКИ кнопку "Видалити пацієнта" і таблицю.
+                btn_StartExamination.Visibility = Visibility.Collapsed;
+                btn_AddImage.Visibility = Visibility.Collapsed;
+                btn_DeleteExam.Visibility = Visibility.Collapsed;
+                sp_ConclusionBlock.Visibility = Visibility.Collapsed;
+            }
+            else if (_currentRole == "Surgeon" || _currentRole == "Хірург")
+            {
+                btn_AddImage.Visibility = Visibility.Collapsed;
+                btn_DeletePatient.Visibility = Visibility.Collapsed;
+
+                // 🚫 ПОВНІСТЮ БЛОКУЄМО ПОЛЕ РЕНТГЕНОЛОГА (Хірург не може його чіпати)
+                tb_RadiologistConclusion.IsReadOnly = true;
+                tb_RadiologistConclusion.Focusable = false; // Навіть курсор не можна поставити
+                tb_RadiologistConclusion.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(232, 238, 245)); // Сіруватий фон
+            }
+            else if (_currentRole == "Radiologist" || _currentRole == "Рентгенолог")
+            {
+                btn_DeletePatient.Visibility = Visibility.Collapsed;
+
+                // 🚫 ПОВНІСТЮ БЛОКУЄМО ПОЛЕ ХІРУРГА (Рентгенолог не може його чіпати)
+                tb_SurgeonConclusion.IsReadOnly = true;
+                tb_SurgeonConclusion.Focusable = false; // Навіть курсор не можна поставити
+                tb_SurgeonConclusion.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(232, 238, 245)); // Сіруватий фон
+            }
+        }
+
+        private async void btn_DeletePatient_Click(object sender, RoutedEventArgs e)
+        {
+            // 1. Запитуємо підтвердження у користувача (Захист від випадкового кліку)
+            var result = MessageBox.Show(
+                "Ви впевнені, що хочете видалити цього пацієнта та всю його медичну історію?\nЦю дію неможливо скасувати!",
+                "Підтвердження видалення",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            // 2. Якщо користувач натиснув "Так"
+            if (result == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    // Викликаємо твій метод видалення з PatientService
+                    await _patientService.DeletePatientAsync(_patientId);
+
+                    MessageBox.Show("Пацієнта та його медичну картку успішно видалено.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    // Закриваємо вікно медкартки, оскільки пацієнта більше немає
+                    this.Close();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Помилка при видаленні пацієнта:\n{ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+        private async void btn_StartExamination_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_medicalCardId == 0)
+                {
+                    MessageBox.Show("Неможливо створити обстеження: медкартку не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Створюємо порожнє обстеження
+                await _examinationService.CreateEmptyExaminationAsync(_medicalCardId);
+
+                // Оновлюємо таблицю, щоб лікар одразу побачив новий рядок!
+                await LoadExaminationsAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка при створенні обстеження:\n{ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private async void btn_AddImage_Click(object sender, RoutedEventArgs e)
+        {
+            // 1. Перевіряємо, чи вибрав лікар обстеження в таблиці
+            if (dg_Examinations.SelectedItem is not BLL.DTOs.Examinations.ExaminationListDto selectedExam)
+            {
+                MessageBox.Show("Будь ласка, спочатку виберіть обстеження з таблиці!", "Увага", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // 2. Відкриваємо вікно вибору файлу
+            OpenFileDialog openFileDialog = new OpenFileDialog
+            {
+                Title = "Виберіть рентгенівський знімок",
+                Filter = "Зображення (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg|Всі файли (*.*)|*.*"
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    string sourceFilePath = openFileDialog.FileName; // Звідки беремо файл (напр. флешка)
+
+                    // --- МАГІЯ СЕРВЕРНОЇ ПАПКИ ---
+
+                    // Крок А: Вказуємо нашу "серверну" папку. 
+                    // Поки що це диск C:. Коли з'явиться справжня мережа, ти просто напишеш тут щось типу @"\\SERVER-PC\HospitalImages"
+                    string serverFolderPath = @"D:\HospitalServer\Images";
+
+                    // Крок Б: Якщо цієї папки ще не існує (перший запуск) - створюємо її!
+                    if (!Directory.Exists(serverFolderPath))
+                    {
+                        Directory.CreateDirectory(serverFolderPath);
+                    }
+
+                    // Крок В: Створюємо унікальне ім'я для файлу, щоб знімки різних людей не переплуталися.
+                    // Використовуємо ID обстеження + унікальний код (Guid) + оригінальне розширення (.jpg)
+                    string fileExtension = Path.GetExtension(sourceFilePath);
+                    string uniqueFileName = $"Exam_{selectedExam.Id}_{Guid.NewGuid()}{fileExtension}";
+
+                    // Крок Г: Формуємо фінальний шлях, куди будемо копіювати
+                    string destinationFilePath = Path.Combine(serverFolderPath, uniqueFileName);
+
+                    // Крок Д: ФІЗИЧНО КОПІЮЄМО ФАЙЛ у нашу "серверну" папку
+                    File.Copy(sourceFilePath, destinationFilePath, true);
+
+                    // --- КІНЕЦЬ МАГІЇ ---
+
+                    // 3. Зберігаємо новий (серверний) шлях у базу даних
+                    await _imageService.UpdateImagePathAsync(selectedExam.Id, destinationFilePath);
+
+                    MessageBox.Show("Знімок успішно завантажено та збережено на сервері!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    // 4. Оновлюємо таблицю
+                    await LoadExaminationsAsync();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Помилка при збереженні знімка:\n{ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+        private async void btn_DeleteExam_Click(object sender, RoutedEventArgs e)
+        {
+            // 1. Перевіряємо, чи вибрано обстеження
+            if (dg_Examinations.SelectedItem is not BLL.DTOs.Examinations.ExaminationListDto selectedExam)
+            {
+                MessageBox.Show("Будь ласка, спочатку виберіть обстеження з таблиці!", "Увага", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // 2. Запитуємо підтвердження
+            var result = MessageBox.Show(
+                "Ви впевнені, що хочете видалити це обстеження?\nВідповідний рентгенівський знімок також буде назавжди видалено з сервера!",
+                "Підтвердження видалення", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    // 3. ЗБЕРІГАЄМО ШЛЯХ до файлу перед тим, як видалити запис з БД
+                    string imagePathToDelete = selectedExam.ImagePath;
+
+                    // 4. Видаляємо обстеження з бази (виклик сервісу)
+                    // (Якщо у тебе ще немає цього методу в сервісі - просто додай його, він має викликати _repository.DeleteAsync)
+                    await _examinationService.DeleteExaminationAsync(selectedExam.Id);
+
+                    // 5. ФІЗИЧНО ВИДАЛЯЄМО ФАЙЛ з нашої "серверної" папки
+                    if (!string.IsNullOrEmpty(imagePathToDelete) && System.IO.File.Exists(imagePathToDelete))
+                    {
+                        System.IO.File.Delete(imagePathToDelete);
+                    }
+
+                    MessageBox.Show("Обстеження та знімок успішно видалено.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    // 6. Оновлюємо таблицю
+                    await LoadExaminationsAsync();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Помилка при видаленні:\n{ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void dg_Examinations_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            // Перевіряємо, чи дійсно вибрано рядок
+            if (dg_Examinations.SelectedItem is BLL.DTOs.Examinations.ExaminationListDto selectedExam)
+            {
+                // 1. Завантажуємо текст висновку рентгенолога
+                tb_RadiologistConclusion.Text = selectedExam.RadiologistConclusion;
+
+                // 2. Завантажуємо текст плану лікування хірурга 
+                // (⚠️ Переконайся, що у твоєму класі ExaminationListDto є властивість SurgeonConclusion, 
+                // або заміни її на ту назву, яку ти використовуєш у DTO)
+                tb_SurgeonConclusion.Text = selectedExam.SurgeonConclusion;
+
+                // 3. Показуємо картинку (безпечний метод)
+                ShowImage(selectedExam.ImagePath);
+            }
+            else
+            {
+                // Якщо нічого не вибрано - очищаємо ОБИДВА поля
+                tb_RadiologistConclusion.Clear();
+                tb_SurgeonConclusion.Clear();
+                img_Preview.Source = null;
+            }
+        }
+        private void ShowImage(string path)
+        {
+            if (string.IsNullOrEmpty(path) || !File.Exists(path))
+            {
+                img_Preview.Source = null; // Якщо картинки немає, очищаємо квадрат
+                return;
+            }
+
+            try
+            {
+                // Використовуємо BitmapCacheOption.OnLoad, щоб програма не "блокувала" файл на диску
+                BitmapImage bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.UriSource = new Uri(path, UriKind.Absolute);
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.EndInit();
+
+                img_Preview.Source = bitmap;
+            }
+            catch (Exception ex)
+            {
+                // Якщо формат картинки битий, програма не впаде
+                img_Preview.Source = null;
+            }
+        }
+        private void btn_ViewImage_Click(object sender, RoutedEventArgs e)
+        {
+            // 1. Отримуємо кнопку, на яку клікнули
+            var button = sender as System.Windows.Controls.Button;
+
+            // 2. МАГІЯ WPF: Дістаємо дані саме того рядка, в якому знаходиться ця кнопка!
+            if (button?.DataContext is BLL.DTOs.Examinations.ExaminationListDto selectedExam)
+            {
+                // 3. Перевіряємо, чи є взагалі картинка
+                if (string.IsNullOrEmpty(selectedExam.ImagePath) || !System.IO.File.Exists(selectedExam.ImagePath))
+                {
+                    MessageBox.Show("Для цього обстеження ще не завантажено знімок або файл не знайдено.",
+                                    "Знімок відсутній", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                try
+                {
+                    // Відкриваємо наше нове розумне вікно і передаємо йому картинку та сервіс
+                    XRayViewerWindow viewerWindow = new XRayViewerWindow(
+                        selectedExam.ImagePath,
+                        selectedExam.Id,
+                        _currentUserId,
+                        _aiService,
+                        _datasetService,
+                        _requestService);
+                    viewerWindow.ShowDialog();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Не вдалося відкрити знімок:\n{ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+        private void img_Preview_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { }
+        private async void btn_SaveConclusion_Click(object sender, RoutedEventArgs e)
+        {
+            if (dg_Examinations.SelectedItem is not BLL.DTOs.Examinations.ExaminationListDto selectedExam)
+            {
+                MessageBox.Show("Будь ласка, спочатку виберіть обстеження з таблиці!", "Увага", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            try
+            {
+                string textToSave = "";
+
+                // Визначаємо, з якого поля брати текст, спираючись на роль користувача
+                if (_currentRole == "Surgeon" || _currentRole == "Хірург")
+                {
+                    textToSave = tb_SurgeonConclusion.Text;
+                }
+                else if (_currentRole == "Radiologist" || _currentRole == "Рентгенолог")
+                {
+                    textToSave = tb_RadiologistConclusion.Text;
+                }
+                else
+                {
+                    MessageBox.Show("У вас немає прав для збереження медичних висновків.", "Помилка доступу", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                // ПЕРЕДАЄМО ДАНІ У СЕРВІС!
+                await _conclusionService.SaveOrUpdateConclusionAsync(selectedExam.Id, _currentRole, textToSave, _currentUserId);
+
+                MessageBox.Show("Висновок успішно збережено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                // Оновлюємо таблицю, щоб підтягнути свіжі дані з бази
+                await LoadExaminationsAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка при збереженні висновку:\n{ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+    }
+}

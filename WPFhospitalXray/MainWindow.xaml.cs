@@ -43,25 +43,24 @@ namespace WPFhospitalXray
 
             if (await _userManager.IsInRoleAsync(user, "Admin"))
             {
-                // 3. ПРО-ПІДХІД: Ми не пишемо new AdminPanel(...). 
-                // Ми кажемо: "Дай мені готове вікно AdminPanel з усіма його нутрощами!"
-                var adminWindow = ActivatorUtilities.CreateInstance<AdminPanel>(_serviceProvider, "Admin");
+                // ПЕРЕДАЄМО РОЛЬ І ID:
+                var adminWindow = ActivatorUtilities.CreateInstance<AdminPanel>(_serviceProvider, "Admin", user.Id);
                 adminWindow.Show();
             }
             else if (await _userManager.IsInRoleAsync(user, "Nurse"))
             {
-                // На майбутнє: var nurseWindow = _serviceProvider.GetRequiredService<NurseWindow>();
-                // nurseWindow.Show();
-                var nurseWindow = ActivatorUtilities.CreateInstance<AdminPanel>(_serviceProvider, "Nurse");
+                var nurseWindow = ActivatorUtilities.CreateInstance<AdminPanel>(_serviceProvider, "Nurse", user.Id);
                 nurseWindow.Show();
             }
             else if (await _userManager.IsInRoleAsync(user, "Radiologist"))
             {
-                // ...
+                var radiologistWindow = ActivatorUtilities.CreateInstance<AdminPanel>(_serviceProvider, "Radiologist", user.Id);
+                radiologistWindow.Show();
             }
             else if (await _userManager.IsInRoleAsync(user, "Surgeon"))
             {
-                // ...
+                var surgeonWindow = ActivatorUtilities.CreateInstance<AdminPanel>(_serviceProvider, "Surgeon", user.Id);
+                surgeonWindow.Show();
             }
             else
             {
