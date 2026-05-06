@@ -17,6 +17,7 @@ namespace WPFhospitalXray
         private readonly IConclusionService _conclusionService;
         private readonly IDatasetService _datasetService;
         private readonly IRetrainingRequestService _requestService;
+        private readonly IAnalysisResultService _analysisResultService;
 
         private string _currentRole;
         private string _patientId;
@@ -33,7 +34,8 @@ namespace WPFhospitalXray
             IConclusionService conclusionService,
             IAIAnalyzerService aiService,
             IDatasetService datasetService,
-            IRetrainingRequestService requestService)
+            IRetrainingRequestService requestService,
+            IAnalysisResultService analysisResultService)
         {
             InitializeComponent();
             _patientService = patientService;
@@ -44,6 +46,7 @@ namespace WPFhospitalXray
             _aiService = aiService;
             _datasetService = datasetService;
             _requestService = requestService;
+            _analysisResultService = analysisResultService;
         }
         // ЗРОБИЛИ МЕТОД ASYNC, щоб він міг чекати на дані з бази
         public async void InitializeData(string patientId, string userRole, string userId)
@@ -387,7 +390,8 @@ namespace WPFhospitalXray
                         _currentUserId,
                         _aiService,
                         _datasetService,
-                        _requestService);
+                        _requestService,
+                        _analysisResultService);
                     viewerWindow.ShowDialog();
                 }
                 catch (Exception ex)

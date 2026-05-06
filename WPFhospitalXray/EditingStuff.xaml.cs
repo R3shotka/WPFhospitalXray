@@ -16,6 +16,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using System.ComponentModel.DataAnnotations;
 
 
 namespace WPFhospitalXray
@@ -98,7 +99,8 @@ namespace WPFhospitalXray
             {
                 "Admin" => "Адміністратор",
                 "Nurse" => "Медсестра",
-                "Orthopedist" => "Ортопед",
+                "Radiologist" => "Рентгенолог",
+                "Surgeon" => "Хірург",
                 _ => "Медсестра" // Якщо в базі щось незрозуміле, ставимо дефолт
             };
         }
@@ -124,6 +126,7 @@ namespace WPFhospitalXray
                 "Адміністратор" => "Admin",
                 "Медсестра" => "Nurse",
                 "Рентгенолог" => "Radiologist",
+                "Хірург" => "Surgeon",
                 _ => "Nurse" // Дефолтне значення
             };
         }
@@ -171,6 +174,18 @@ namespace WPFhospitalXray
                     Position = GetPositionFromDisplayName(selectedJob), // Перекладаємо "Адміністратор" -> "Admin"
                     Sex = GetSexFromDisplayName(selectedSex)            // Перекладаємо "Чоловіча" -> "Ч"
                 };
+
+                var validationContext = new ValidationContext(editDto);
+                var validationResults = new List<System.ComponentModel.DataAnnotations.ValidationResult>();
+
+                bool isValid = Validator.TryValidateObject(editDto, validationContext, validationResults, true);
+
+                if (!isValid)
+                {
+                    string errors = string.Join("\n", validationResults.Select(r => r.ErrorMessage));
+                    MessageBox.Show(errors, "Помилка валідації", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
 
                 // 3. Відправляємо в базу асинхронно
                 await _userService.UpdateAsync(editDto);

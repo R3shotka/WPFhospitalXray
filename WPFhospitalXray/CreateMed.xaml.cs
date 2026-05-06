@@ -1,9 +1,10 @@
 ﻿
-using DAL.DBContext;
 using BLL.DTOs.AppUsers;
 using BLL.Interface;
+using DAL.DBContext;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -58,6 +59,18 @@ namespace WPFhospitalXray
                     Login = Login_textbox.Text,
                     Password = Pass_textbox.Text
                 };
+
+                var validationContext = new ValidationContext(createStaffDto);
+                var validationResults = new List<System.ComponentModel.DataAnnotations.ValidationResult>();
+
+                bool isValid = Validator.TryValidateObject(createStaffDto, validationContext, validationResults, true);
+
+                if (!isValid)
+                {
+                    string errors = string.Join("\n", validationResults.Select(r => r.ErrorMessage));
+                    MessageBox.Show(errors, "Помилка валідації", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
 
                 // 3. Додали await! Тепер чекаємо, поки БД реально збереже людину
                 await _userService.CreateAsync(createStaffDto);

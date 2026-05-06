@@ -1,6 +1,8 @@
 ﻿using BLL.DTOs;
+using BLL.DTOs.AnalysisResults;
 using BLL.DTOs.FractureDetections;
 using BLL.Interface;
+using DAL.Entity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,6 +18,8 @@ namespace WPFhospitalXray
     {
         private readonly IAIAnalyzerService _aiService;
         private readonly IDatasetService _datasetService;
+        private readonly IAnalysisResultService _analysisResultService;
+        private int? _currentAnalysisResultId;
 
         // НОВЕ: Додаємо сервіс запитів та дані для бази
         private readonly IRetrainingRequestService _requestService;
@@ -31,7 +35,7 @@ namespace WPFhospitalXray
         // НОВЕ: Оновлений конструктор. Тепер він приймає ID обстеження, ID лікаря та сервіс
         public XRayViewerWindow(string imagePath, int examinationId, string currentUserId,
                                 IAIAnalyzerService aiService, IDatasetService datasetService,
-                                IRetrainingRequestService requestService)
+                                IRetrainingRequestService requestService, IAnalysisResultService analysisResultService)
         {
             InitializeComponent();
 
@@ -43,7 +47,12 @@ namespace WPFhospitalXray
             _datasetService = datasetService;
             _requestService = requestService;
 
+
+
             LoadOriginalImage();
+
+            _analysisResultService = analysisResultService;
+            _ = LoadSavedAnalysisAsync();
         }
 
         private void LoadOriginalImage()
@@ -74,6 +83,21 @@ namespace WPFhospitalXray
             try
             {
                 List<FractureDetectionDto> detections = await _aiService.AnalyzeImageAsync(_imagePath);
+
+                var saveDto = new SaveAnalysisResultDto
+                {
+                    ExaminationId = _examinationId,
+                    UserId = _currentUserId,
+                    ModelName = "YOLOv8 fracture detector",
+                    ModelVersion = "best1",
+                    ModelPath = @"Models\best1.onnx",
+                    Detections = detections ?? new List<FractureDetectionDto>()
+                };
+
+                _currentAnalysisResultId = await _analysisResultService.SaveAnalysisResultAsync(saveDto);
+
+                btn_ConfirmAI.Visibility = Visibility.Visible;
+                btn_RejectAI.Visibility = Visibility.Visible;
 
                 if (detections == null || detections.Count == 0)
                 {
@@ -267,6 +291,79 @@ namespace WPFhospitalXray
                 btn_SaveForRetrain.IsEnabled = true;
                 btn_SaveForRetrain.Content = "💾 Зберегти для навчання";
             }
+        }
+
+        private async Task LoadSavedAnalysisAsync()
+        {
+            try
+            {
+                var savedResult = await _analysisResultService.GetLatestByExaminationIdAsync(_examinationId);
+
+                if (savedResult == null)
+                {
+                    return;
+                }
+
+                _currentAnalysisResultId = savedResult.Id;
+
+                if (savedResult.Detections == null || savedResult.Detections.Count == 0)
+                {
+                    tb_AIResult.Foreground = new SolidColorBrush(Colors.ForestGreen);
+                    tb_AIResult.Text = $"Збережений AI-аналіз від {savedResult.AnalyzedAt:dd.MM.yyyy HH:mm}: патологій не виявлено.";
+                    return;
+                }
+
+                CreateAiImageWithMarkup(savedResult.Detections);
+
+                cb_ShowMarkup.Visibility = Visibility.Visible;
+                cb_ShowMarkup.IsChecked = true;
+
+                btn_ConfirmAI.Visibility = Visibility.Visible;
+                btn_RejectAI.Visibility = Visibility.Visible;
+
+                var bestConfidence = savedResult.Detections.Max(d => d.Confidence);
+                tb_AIResult.Foreground = new SolidColorBrush(Colors.DarkOrange);
+                tb_AIResult.Text = $"Завантажено збережений AI-аналіз від {savedResult.AnalyzedAt:dd.MM.yyyy HH:mm}. " +
+                                   $"Виявлено: {savedResult.Detections.Count}. Найвища впевненість: {Math.Round(bestConfidence * 100, 1)}%. " +
+                                   $"Статус: {savedResult.Status}.";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка завантаження збереженого AI-аналізу:\n{ex.Message}",
+                    "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        /// НОВЕ: Додаємо можливість лікарю підтвердити або відхилити результат AI-аналізу. Це оновить статус у базі даних, і Адмін зможе бачити ці зміни при перегляді запитів на перенавчання.
+        private async void btn_ConfirmAI_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentAnalysisResultId == null)
+            {
+                MessageBox.Show("Немає збереженого AI-аналізу для підтвердження.");
+                return;
+            }
+
+            await _analysisResultService.UpdateStatusAsync(
+                _currentAnalysisResultId.Value,
+                AnalysisReviewStatus.Confirmed,
+                "Результат підтверджено лікарем.");
+
+            MessageBox.Show("AI-результат підтверджено.");
+        }
+
+        private async void btn_RejectAI_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentAnalysisResultId == null)
+            {
+                MessageBox.Show("Немає збереженого AI-аналізу для відхилення.");
+                return;
+            }
+
+            await _analysisResultService.UpdateStatusAsync(
+                _currentAnalysisResultId.Value,
+                AnalysisReviewStatus.Rejected,
+                "Результат відхилено лікарем.");
+
+            MessageBox.Show("AI-результат відхилено.");
         }
     }
 }

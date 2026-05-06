@@ -30,6 +30,9 @@ namespace DAL.DBContext
 
         public DbSet<RetrainingRequest> RetrainingRequests { get; set; }
 
+        public DbSet<AnalysisResult> AnalysisResults { get; set; }
+        public DbSet<DetectionBox> DetectionBoxes { get; set; }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
@@ -181,6 +184,56 @@ namespace DAL.DBContext
                       .WithMany()
                       .HasForeignKey(r => r.ExaminationId)
                       // Якщо видалили обстеження - видаляємо і запит на його перевірку
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+            builder.Entity<AnalysisResult>(entity =>
+            {
+                entity.HasKey(a => a.Id);
+
+                entity.Property(a => a.ModelName)
+                      .IsRequired()
+                      .HasMaxLength(100);
+
+                entity.Property(a => a.ModelVersion)
+                      .HasMaxLength(100);
+
+                entity.Property(a => a.ModelPath)
+                      .HasMaxLength(500);
+
+                entity.Property(a => a.Status)
+                      .IsRequired()
+                      .HasConversion<string>()
+                      .HasMaxLength(20);
+
+                entity.Property(a => a.DoctorComment)
+                      .HasMaxLength(1000);
+
+                entity.HasOne(a => a.Examination)
+                      .WithMany()
+                      .HasForeignKey(a => a.ExaminationId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(a => a.User)
+                      .WithMany()
+                      .HasForeignKey(a => a.UserId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            builder.Entity<DetectionBox>(entity =>
+            {
+                entity.HasKey(d => d.Id);
+
+                entity.Property(d => d.ClassName)
+                      .IsRequired()
+                      .HasMaxLength(100);
+
+                entity.Property(d => d.Source)
+                      .IsRequired()
+                      .HasMaxLength(20);
+
+                entity.HasOne(d => d.AnalysisResult)
+                      .WithMany(a => a.DetectionBoxes)
+                      .HasForeignKey(d => d.AnalysisResultId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
         }

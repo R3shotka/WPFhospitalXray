@@ -1,4 +1,5 @@
-﻿using BLL.Interface;
+﻿using BLL.DTOs.Auth;
+using BLL.Interface;
 using DAL.Entity;
 using Microsoft.AspNetCore.Identity;
 using System;
@@ -20,16 +21,60 @@ namespace BLL.Service
             _signInManager = signInManager;
         }
 
-        public async Task<bool> LoginAsync(string username, string password)
+        public async Task<AuthResultDto> LoginAsync(string username, string password)
         {
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            {
+                return new AuthResultDto
+                {
+                    Success = false,
+                    ErrorMessage = "Введіть логін і пароль."
+                };
+            }
+
             var user = await _userManager.FindByNameAsync(username);
             if (user == null)
             {
-                return false;
+                return new AuthResultDto
+                {
+                    Success = false,
+                    ErrorMessage = "Користувача з таким логіном не знайдено."
+                };
             }
 
             var result = await _signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: false);
-            return result.Succeeded;
+            if (!result.Succeeded)
+            {
+                return new AuthResultDto
+                {
+                    Success = false,
+                    ErrorMessage = "Невірний логін або пароль."
+                };
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+            var role = roles.FirstOrDefault(r =>
+                r == "Admin" ||
+                r == "Nurse" ||
+                r == "Radiologist" ||
+                r == "Surgeon");
+
+            if (string.IsNullOrWhiteSpace(role))
+            {
+                return new AuthResultDto
+                {
+                    Success = false,
+                    ErrorMessage = "Користувач не має призначеної ролі."
+                };
+            }
+
+            return new AuthResultDto
+            {
+                Success = true,
+                UserId = user.Id,
+                Role = role,
+                FullName = user.FullName
+            };
         }
 
         public async Task LogoutAsync()

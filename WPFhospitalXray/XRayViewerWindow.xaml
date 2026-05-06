@@ -18,21 +18,71 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <Button x:Name="btn_RunAI" Grid.Column="0" Content="🤖 Аналіз ШІ" 
-                        Height="40" Padding="20,0" FontSize="15" FontWeight="Bold" 
-                        Background="#4B7DC0" Foreground="White" BorderThickness="0"
-                        Cursor="Hand" Click="btn_RunAI_Click" Margin="0,0,20,0"/>
+                <Button x:Name="btn_RunAI"
+            Grid.Column="0"
+            Content="🤖 Аналіз ШІ"
+            Height="40"
+            Padding="20,0"
+            FontSize="15"
+            FontWeight="Bold"
+            Background="#4B7DC0"
+            Foreground="White"
+            BorderThickness="0"
+            Cursor="Hand"
+            Click="btn_RunAI_Click"
+            Margin="0,0,20,0"/>
 
-                <CheckBox x:Name="cb_ShowMarkup" Grid.Column="1" Content="Показувати розмітку ШІ" 
-                          Foreground="#526681" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" 
-                          Visibility="Collapsed" Checked="cb_ShowMarkup_Checked" Unchecked="cb_ShowMarkup_Unchecked"/>
+                <CheckBox x:Name="cb_ShowMarkup"
+              Grid.Column="1"
+              Content="Показувати розмітку ШІ"
+              Foreground="#526681"
+              FontSize="14"
+              FontWeight="SemiBold"
+              VerticalAlignment="Center"
+              Visibility="Collapsed"
+              Checked="cb_ShowMarkup_Checked"
+              Unchecked="cb_ShowMarkup_Unchecked"
+              Margin="0,0,20,0"/>
 
-                <TextBlock x:Name="tb_AIResult" Grid.Column="2" Foreground="#526681" 
-                           FontSize="15" FontWeight="Bold" VerticalAlignment="Center" 
-                           HorizontalAlignment="Right" TextWrapping="Wrap"/>
+                <Button x:Name="btn_ConfirmAI"
+            Grid.Column="2"
+            Content="✅ Підтвердити"
+            Height="35"
+            Padding="15,0"
+            Background="#4CAF50"
+            Foreground="White"
+            BorderThickness="0"
+            Cursor="Hand"
+            Visibility="Collapsed"
+            Click="btn_ConfirmAI_Click"
+            Margin="0,0,10,0"/>
+
+                <Button x:Name="btn_RejectAI"
+            Grid.Column="3"
+            Content="❌ Відхилити"
+            Height="35"
+            Padding="15,0"
+            Background="#E74C3C"
+            Foreground="White"
+            BorderThickness="0"
+            Cursor="Hand"
+            Visibility="Collapsed"
+            Click="btn_RejectAI_Click"
+            Margin="0,0,20,0"/>
+
+                <TextBlock x:Name="tb_AIResult"
+               Grid.Column="4"
+               Foreground="#526681"
+               FontSize="15"
+               FontWeight="Bold"
+               VerticalAlignment="Center"
+               HorizontalAlignment="Right"
+               TextWrapping="Wrap"/>
             </Grid>
         </Border>
 
