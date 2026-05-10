@@ -185,6 +185,11 @@ namespace DAL.DBContext
                       .HasForeignKey(r => r.ExaminationId)
                       // Якщо видалили обстеження - видаляємо і запит на його перевірку
                       .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(r => r.RequestType)
+                      .IsRequired()
+                      .HasConversion<string>()
+                      .HasMaxLength(30);
             });
             builder.Entity<AnalysisResult>(entity =>
             {

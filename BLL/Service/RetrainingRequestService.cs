@@ -36,24 +36,36 @@ namespace BLL.Service
                 RequestedAt = r.RequestedAt,
                 Status = r.Status,
                 Comment = r.Comment,
-                ImagePath = r.Examination?.Images?.FirstOrDefault()?.FilePath
+                ImagePath = r.Examination?.Images?.FirstOrDefault()?.FilePath,
+                RequestType = r.RequestType,
+                RequestTypeDisplayName = GetRequestTypeDisplayName(r.RequestType),
             }).ToList();
 
             return dtos;
         }
 
-        public async Task CreateRequestAsync(int examinationId, string userId, string comment = null)
+        public async Task<bool> CreateRequestAsync(int examinationId, string userId, RetrainingRequestType requestType, string comment = null)
         {
+            bool alreadyExists = await _repository.HasActiveRequestByExaminationIdAsync(examinationId);
+
+            if (alreadyExists)
+            {
+                return false;
+            }
+
             var newRequest = new RetrainingRequest
             {
                 ExaminationId = examinationId,
                 RequestByUserId = userId,
                 RequestedAt = DateTime.Now,
-                Status = RetrainingRequestStatus.Pending, // Автоматично ставимо "Очікує"
+                Status = RetrainingRequestStatus.Pending,
+                RequestType = requestType,
                 Comment = comment
             };
 
             await _repository.AddAsync(newRequest);
+
+            return true;
         }
 
         public async Task UpdateStatusAsync(int requestId, RetrainingRequestStatus newStatus)
@@ -71,6 +83,17 @@ namespace BLL.Service
             {
                 throw new Exception("Запит не знайдено в базі даних.");
             }
+        }
+
+        private static string GetRequestTypeDisplayName(RetrainingRequestType type)
+        {
+            return type switch
+            {
+                RetrainingRequestType.CorrectedPositive => "Неточна локалізація перелому",
+                RetrainingRequestType.FalsePositive => "Хибне виявлення перелому",
+                RetrainingRequestType.FalseNegative => "Пропущений перелом",
+                _ => "Невизначений тип"
+            };
         }
     }
 }

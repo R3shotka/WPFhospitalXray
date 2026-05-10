@@ -10,5 +10,6 @@ namespace BLL.Interface
     {
         Task SaveSegmentationDataAsync(string originalImagePath, string yoloLabelString);
         Task DeleteTempLabelAsync(string originalImagePath);
+        Task SaveEmptyLabelAsync(string originalImagePath);
     }
 }

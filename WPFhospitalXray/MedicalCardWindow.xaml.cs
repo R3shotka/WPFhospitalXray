@@ -125,43 +125,56 @@ namespace WPFhospitalXray
 
         private void ConfigureUIForRole()
         {
-            // Спочатку скидаємо всі обмеження (білий фон, можна писати, можна ставити курсор)
-            tb_RadiologistConclusion.IsReadOnly = false;
-            tb_RadiologistConclusion.Focusable = true;
-            tb_RadiologistConclusion.Background = System.Windows.Media.Brushes.White;
+            // Базовий стан: усе приховано, а потім явно відкриваємо потрібне для ролі.
+            btn_StartExamination.Visibility = Visibility.Collapsed;
+            btn_AddImage.Visibility = Visibility.Collapsed;
+            btn_DeleteExam.Visibility = Visibility.Collapsed;
+            btn_DeletePatient.Visibility = Visibility.Collapsed;
+            sp_ConclusionBlock.Visibility = Visibility.Collapsed;
 
-            tb_SurgeonConclusion.IsReadOnly = false;
-            tb_SurgeonConclusion.Focusable = true;
-            tb_SurgeonConclusion.Background = System.Windows.Media.Brushes.White;
+            tb_RadiologistConclusion.IsReadOnly = true;
+            tb_RadiologistConclusion.Focusable = false;
+            tb_RadiologistConclusion.Background = new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(232, 238, 245));
+
+            tb_SurgeonConclusion.IsReadOnly = true;
+            tb_SurgeonConclusion.Focusable = false;
+            tb_SurgeonConclusion.Background = new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(232, 238, 245));
 
             if (_currentRole == "Nurse" || _currentRole == "Медсестра")
             {
-                // Медсестра бачить ТІЛЬКИ кнопку "Видалити пацієнта" і таблицю.
-                btn_StartExamination.Visibility = Visibility.Collapsed;
-                btn_AddImage.Visibility = Visibility.Collapsed;
-                btn_DeleteExam.Visibility = Visibility.Collapsed;
-                sp_ConclusionBlock.Visibility = Visibility.Collapsed;
-            }
-            else if (_currentRole == "Surgeon" || _currentRole == "Хірург")
-            {
-                btn_AddImage.Visibility = Visibility.Collapsed;
-                btn_DeletePatient.Visibility = Visibility.Collapsed;
+                // Медсестра створює обстеження і може переглядати список/знімок.
+                btn_StartExamination.Visibility = Visibility.Visible;
 
-                // 🚫 ПОВНІСТЮ БЛОКУЄМО ПОЛЕ РЕНТГЕНОЛОГА (Хірург не може його чіпати)
-                tb_RadiologistConclusion.IsReadOnly = true;
-                tb_RadiologistConclusion.Focusable = false; // Навіть курсор не можна поставити
-                tb_RadiologistConclusion.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(232, 238, 245)); // Сіруватий фон
+                // Якщо хочеш залишити медсестрі видалення пацієнта з медкарти, залиш цей рядок.
+                // Якщо ні - просто прибери або закоментуй його.
+                btn_DeletePatient.Visibility = Visibility.Visible;
+
+                sp_ConclusionBlock.Visibility = Visibility.Collapsed;
             }
             else if (_currentRole == "Radiologist" || _currentRole == "Рентгенолог")
             {
-                btn_DeletePatient.Visibility = Visibility.Collapsed;
+                // Рентгенолог працює зі знімком і пише свій висновок.
+                btn_AddImage.Visibility = Visibility.Visible;
+                btn_DeleteExam.Visibility = Visibility.Visible;
+                sp_ConclusionBlock.Visibility = Visibility.Visible;
 
-                // 🚫 ПОВНІСТЮ БЛОКУЄМО ПОЛЕ ХІРУРГА (Рентгенолог не може його чіпати)
-                tb_SurgeonConclusion.IsReadOnly = true;
-                tb_SurgeonConclusion.Focusable = false; // Навіть курсор не можна поставити
-                tb_SurgeonConclusion.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(232, 238, 245)); // Сіруватий фон
+                tb_RadiologistConclusion.IsReadOnly = false;
+                tb_RadiologistConclusion.Focusable = true;
+                tb_RadiologistConclusion.Background = System.Windows.Media.Brushes.White;
+            }
+            else if (_currentRole == "Surgeon" || _currentRole == "Хірург")
+            {
+                // Хірург переглядає дані і пише план лікування, але не створює/видаляє обстеження.
+                sp_ConclusionBlock.Visibility = Visibility.Visible;
+
+                tb_SurgeonConclusion.IsReadOnly = false;
+                tb_SurgeonConclusion.Focusable = true;
+                tb_SurgeonConclusion.Background = System.Windows.Media.Brushes.White;
             }
         }
+
 
         private async void btn_DeletePatient_Click(object sender, RoutedEventArgs e)
         {
@@ -388,6 +401,7 @@ namespace WPFhospitalXray
                         selectedExam.ImagePath,
                         selectedExam.Id,
                         _currentUserId,
+                        _currentRole,
                         _aiService,
                         _datasetService,
                         _requestService,

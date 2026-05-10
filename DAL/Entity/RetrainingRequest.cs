@@ -13,6 +13,12 @@ namespace DAL.Entity
         Completed,  // УСПІШНО ВИКОРИСТАНО В НАВЧАННІ (ШІ вже на ньому навчився)
         Cancelled   // Відхилено адміном (Брак, погана розмітка)
     }
+    public enum RetrainingRequestType
+    {
+        CorrectedPositive, // AI знайшов перелом, але лікар скоригував розмітку
+        FalsePositive,     // AI знайшов перелом, але перелому немає
+        FalseNegative      // AI не знайшов перелом, але лікар вручну його розмітив
+    }
 
     public class RetrainingRequest
     {
@@ -26,5 +32,6 @@ namespace DAL.Entity
         public DateTime RequestedAt { get; set; } = DateTime.Now;
         public string? Comment { get; set; }
         public RetrainingRequestStatus Status { get; set; }
+        public RetrainingRequestType RequestType { get; set; }
     }
 }

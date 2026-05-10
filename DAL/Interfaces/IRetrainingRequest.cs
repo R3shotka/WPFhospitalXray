@@ -15,5 +15,10 @@ namespace DAL.Interfaces
 
         // Додатковий метод: отримати всі запити за певним статусом (напр. тільки "На доопрацювання")
         Task<List<RetrainingRequest>> GetByStatusAsync(RetrainingRequestStatus status);
+
+        
+
+        Task<bool> HasActiveRequestByExaminationIdAsync(int examinationId);
+
     }
 }

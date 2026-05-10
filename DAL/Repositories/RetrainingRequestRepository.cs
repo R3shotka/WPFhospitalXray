@@ -82,5 +82,15 @@ namespace DAL.Repositories
             _dbContext.RetrainingRequests.Update(entity);
             await _dbContext.SaveChangesAsync();
         }
+
+        
+
+        public async Task<bool> HasActiveRequestByExaminationIdAsync(int examinationId)
+        {
+            return await _dbContext.RetrainingRequests.AnyAsync(r =>
+                r.ExaminationId == examinationId &&
+                (r.Status == RetrainingRequestStatus.Pending ||
+                 r.Status == RetrainingRequestStatus.Processing));
+        }
     }
 }

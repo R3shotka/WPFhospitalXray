@@ -38,5 +38,17 @@ namespace BLL.Service
                 await Task.Run(() => File.Delete(destLabelPath));
             }
         }
+
+        public async Task SaveEmptyLabelAsync(string originalImagePath)
+        {
+            string tempLabelsFolder = @"D:\HospitalServer\TempLabels";
+
+            Directory.CreateDirectory(tempLabelsFolder);
+
+            string fileName = Path.GetFileNameWithoutExtension(originalImagePath) + ".txt";
+            string destLabelPath = Path.Combine(tempLabelsFolder, fileName);
+
+            await File.WriteAllTextAsync(destLabelPath, string.Empty);
+        }
     }
 }

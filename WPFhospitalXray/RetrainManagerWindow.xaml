@@ -54,6 +54,8 @@
          Width="*" розтягне колонку лікаря на весь вільний простір, що залишився на екрані -->
                 <DataGridTextColumn Header="Лікар" Binding="{Binding DoctorName}" Width="*" />
 
+                <DataGridTextColumn Header="Тип випадку" Binding="{Binding RequestTypeDisplayName}" Width="*" />
+
                 <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="Auto" />
 
                 <!-- Твоя колонка з кнопкою "Перевірити розмітку" -->
