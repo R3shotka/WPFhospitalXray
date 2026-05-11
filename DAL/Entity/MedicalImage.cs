@@ -18,5 +18,11 @@ namespace DAL.Entity
         public string FilePath { get; set; } = string.Empty; // шлях у файловій системі або URL
         public string ContentType { get; set; } = string.Empty; // наприклад, "image/png"
         public DateTime UploadedAt { get; set; } = DateTime.Now;
+
+        // AI-аналізи саме цього знімка
+        public List<AnalysisResult> AnalysisResults { get; set; } = new();
+
+        // Запити на донавчання саме по цьому знімку
+        public List<RetrainingRequest> RetrainingRequests { get; set; } = new();
     }
 }

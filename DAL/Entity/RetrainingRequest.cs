@@ -26,6 +26,15 @@ namespace DAL.Entity
         public int ExaminationId { get; set; }
         public Examination Examination { get; set; }
 
+
+
+        // Новий правильний зв’язок:
+        // запит на донавчання стосується конкретного знімка.
+        public int? MedicalImageId { get; set; }
+        public MedicalImage? MedicalImage { get; set; }
+
+
+
         public string RequestByUserId { get; set; }
         public ApplicationUser RequestByUser { get; set; }
 

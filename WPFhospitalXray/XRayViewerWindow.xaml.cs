@@ -67,21 +67,17 @@ namespace WPFhospitalXray
 
         private void ConfigureUiForRole()
         {
-            if (CanWorkWithAi())
-            {
-                btn_RunAI.Visibility = Visibility.Visible;
-                btn_StartManual.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                btn_RunAI.Visibility = Visibility.Collapsed;
-                btn_StartManual.Visibility = Visibility.Collapsed;
-            }
+            btn_RunAI.Visibility = CanWorkWithAi() ? Visibility.Visible : Visibility.Collapsed;
 
             btn_ConfirmAI.Visibility = Visibility.Collapsed;
             btn_RejectAI.Visibility = Visibility.Collapsed;
+            btn_StartManual.Visibility = Visibility.Collapsed;
 
-            // Checkbox з'явиться тільки тоді, коли буде завантажена збережена розмітка.
+            btn_ClearPoints.Visibility = Visibility.Collapsed;
+            btn_SaveForRetrain.Visibility = Visibility.Collapsed;
+            tb_LiveLabel.Visibility = Visibility.Collapsed;
+            DrawingCanvas.Visibility = Visibility.Collapsed;
+
             cb_ShowMarkup.Visibility = Visibility.Collapsed;
         }
 
@@ -109,6 +105,16 @@ namespace WPFhospitalXray
             {
                 MessageBox.Show("У вас немає прав для запуску AI-аналізу.", "Доступ заборонено",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (_currentAnalysisResultId != null)
+            {
+                MessageBox.Show(
+                    "Для цього обстеження вже існує AI-аналіз. Повторний запуск недоступний після створення результату.",
+                    "AI-аналіз уже існує",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
                 return;
             }
             btn_RunAI.IsEnabled = false;
@@ -227,6 +233,15 @@ namespace WPFhospitalXray
             {
                 MessageBox.Show("У вас немає прав для ручної розмітки знімка.", "Доступ заборонено",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            if (!IsAnalysisPending())
+            {
+                MessageBox.Show(
+                    "Ручна розмітка доступна тільки для AI-результату, який очікує перевірки.",
+                    "Дія недоступна",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
                 return;
             }
             DrawingCanvas.Visibility = Visibility.Visible;
@@ -401,6 +416,11 @@ namespace WPFhospitalXray
 
                 if (savedResult == null)
                 {
+                    _currentAnalysisResultId = null;
+                    _currentAnalysisStatus = null;
+                    _currentDetections = new List<FractureDetectionDto>();
+
+                    UpdateReviewButtonsVisibility();
                     return;
                 }
 
@@ -558,11 +578,24 @@ namespace WPFhospitalXray
 
         private void UpdateReviewButtonsVisibility()
         {
+            bool hasAnalysis = _currentAnalysisResultId != null;
             bool canReview = IsAnalysisPending() && CanWorkWithAi();
+
+            btn_RunAI.Visibility = CanWorkWithAi() && !hasAnalysis
+                ? Visibility.Visible
+                : Visibility.Collapsed;
 
             btn_ConfirmAI.Visibility = canReview ? Visibility.Visible : Visibility.Collapsed;
             btn_RejectAI.Visibility = canReview ? Visibility.Visible : Visibility.Collapsed;
             btn_StartManual.Visibility = canReview ? Visibility.Visible : Visibility.Collapsed;
+
+            if (!canReview)
+            {
+                btn_ClearPoints.Visibility = Visibility.Collapsed;
+                btn_SaveForRetrain.Visibility = Visibility.Collapsed;
+                tb_LiveLabel.Visibility = Visibility.Collapsed;
+                DrawingCanvas.Visibility = Visibility.Collapsed;
+            }
         }
 
         private string GetAnalysisStatusDisplayName(AnalysisReviewStatus status)
