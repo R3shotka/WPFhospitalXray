@@ -86,5 +86,26 @@ namespace DAL.Repositories
 
             await _dbContext.SaveChangesAsync();
         }
+
+
+        public async Task<List<AnalysisResult>> GetByMedicalImageIdAsync(int medicalImageId)
+        {
+            return await _dbContext.AnalysisResults
+                .Include(a => a.DetectionBoxes)
+                .Include(a => a.User)
+                .Where(a => a.MedicalImageId == medicalImageId)
+                .OrderByDescending(a => a.AnalyzedAt)
+                .ToListAsync();
+        }
+
+        public async Task<AnalysisResult?> GetLatestByMedicalImageIdAsync(int medicalImageId)
+        {
+            return await _dbContext.AnalysisResults
+                .Include(a => a.DetectionBoxes)
+                .Include(a => a.User)
+                .Where(a => a.MedicalImageId == medicalImageId)
+                .OrderByDescending(a => a.AnalyzedAt)
+                .FirstOrDefaultAsync();
+        }
     }
 }

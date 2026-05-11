@@ -20,11 +20,45 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
+                <Button x:Name="btn_PreviousImage"
+        Grid.Column="0"
+        Content="←"
+        Height="35"
+        Width="45"
+        Background="#526681"
+        Foreground="White"
+        BorderThickness="0"
+        Cursor="Hand"
+        Click="btn_PreviousImage_Click"
+        Margin="0,0,8,0"/>
 
+                <TextBlock x:Name="tb_ImageCounter"
+           Grid.Column="1"
+           Text="Знімок 0 з 0"
+           Foreground="#526681"
+           FontSize="14"
+           FontWeight="SemiBold"
+           VerticalAlignment="Center"
+           Margin="0,0,8,0"/>
+
+                <Button x:Name="btn_NextImage"
+        Grid.Column="2"
+        Content="→"
+        Height="35"
+        Width="45"
+        Background="#526681"
+        Foreground="White"
+        BorderThickness="0"
+        Cursor="Hand"
+        Click="btn_NextImage_Click"
+        Margin="0,0,20,0"/>
                 <Button x:Name="btn_RunAI"
-            Grid.Column="0"
+            Grid.Column="3"
             Content="🤖 Аналіз ШІ"
             Height="40"
             Padding="20,0"
@@ -38,7 +72,7 @@
             Margin="0,0,20,0"/>
 
                 <CheckBox x:Name="cb_ShowMarkup"
-              Grid.Column="1"
+              Grid.Column="4"
               Content="Показувати розмітку ШІ"
               Foreground="#526681"
               FontSize="14"
@@ -50,7 +84,7 @@
               Margin="0,0,20,0"/>
 
                 <Button x:Name="btn_ConfirmAI"
-            Grid.Column="2"
+            Grid.Column="5"
             Content="✅ Підтвердити"
             Height="35"
             Padding="15,0"
@@ -63,7 +97,7 @@
             Margin="0,0,10,0"/>
 
                 <Button x:Name="btn_RejectAI"
-            Grid.Column="3"
+            Grid.Column="6"
             Content="❌ Відхилити"
             Height="35"
             Padding="15,0"
@@ -76,7 +110,7 @@
             Margin="0,0,20,0"/>
 
                 <TextBlock x:Name="tb_AIResult"
-               Grid.Column="4"
+               Grid.Column="7"
                Foreground="#526681"
                FontSize="15"
                FontWeight="Bold"

@@ -12,6 +12,7 @@ namespace BLL.DTOs.RetrainingRequests
         public int Id { get; set; }
 
         public int ExaminationId { get; set; }
+        public int? MedicalImageId { get; set; }
 
         // Замість цілого об'єкта User, ми передаємо просто ПІБ лікаря для таблиці
         public string DoctorName { get; set; }

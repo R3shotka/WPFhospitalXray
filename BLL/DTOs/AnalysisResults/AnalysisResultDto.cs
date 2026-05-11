@@ -6,7 +6,11 @@ namespace BLL.DTOs.AnalysisResults
     public class AnalysisResultDto
     {
         public int Id { get; set; }
+
         public int ExaminationId { get; set; }
+
+        // Новий зв’язок із конкретним знімком
+        public int? MedicalImageId { get; set; }
 
         public string ModelName { get; set; }
         public string ModelVersion { get; set; }

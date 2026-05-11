@@ -11,6 +11,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using BLL.DTOs.MedicalImages;
 
 namespace WPFhospitalXray
 {
@@ -27,7 +28,14 @@ namespace WPFhospitalXray
         private readonly int _examinationId;
         private readonly string _currentUserId;
 
-        private readonly string _imagePath;
+        private readonly IMedicalImageService _imageService;
+
+        private List<MedicalImageDto> _images = new List<MedicalImageDto>();
+        private int _currentImageIndex = 0;
+
+        private MedicalImageDto CurrentImage => _images[_currentImageIndex];
+        private string CurrentImagePath => CurrentImage.FilePath;
+        private int CurrentMedicalImageId => CurrentImage.Id;
 
         private BitmapImage _originalImage;
         private RenderTargetBitmap _aiImage;
@@ -37,27 +45,31 @@ namespace WPFhospitalXray
         private List<FractureDetectionDto> _currentDetections = new List<FractureDetectionDto>();
 
         // НОВЕ: Оновлений конструктор. Тепер він приймає ID обстеження, ID лікаря та сервіс
-        public XRayViewerWindow(string imagePath, int examinationId, string currentUserId, string currentRole,
-                                IAIAnalyzerService aiService, IDatasetService datasetService,
-                                IRetrainingRequestService requestService, IAnalysisResultService analysisResultService)
+        public XRayViewerWindow(
+    int examinationId,
+    string currentUserId,
+    string currentRole,
+    IMedicalImageService imageService,
+    IAIAnalyzerService aiService,
+    IDatasetService datasetService,
+    IRetrainingRequestService requestService,
+    IAnalysisResultService analysisResultService)
         {
             InitializeComponent();
 
-            _imagePath = imagePath;
             _examinationId = examinationId;
             _currentUserId = currentUserId;
             _currentRole = currentRole;
 
+            _imageService = imageService;
             _aiService = aiService;
             _datasetService = datasetService;
             _requestService = requestService;
+            _analysisResultService = analysisResultService;
 
             ConfigureUiForRole();
 
-            LoadOriginalImage();
-
-            _analysisResultService = analysisResultService;
-            _ = LoadSavedAnalysisAsync();
+            _ = LoadImagesAsync();
         }
 
         private bool CanWorkWithAi()
@@ -87,7 +99,7 @@ namespace WPFhospitalXray
             {
                 _originalImage = new BitmapImage();
                 _originalImage.BeginInit();
-                _originalImage.UriSource = new Uri(_imagePath, UriKind.Absolute);
+                _originalImage.UriSource = new Uri(CurrentImagePath, UriKind.Absolute);
                 _originalImage.CacheOption = BitmapCacheOption.OnLoad;
                 _originalImage.EndInit();
 
@@ -124,11 +136,12 @@ namespace WPFhospitalXray
 
             try
             {
-                List<FractureDetectionDto> detections = await _aiService.AnalyzeImageAsync(_imagePath);
+                List<FractureDetectionDto> detections = await _aiService.AnalyzeImageAsync(CurrentImagePath);
 
                 var saveDto = new SaveAnalysisResultDto
                 {
                     ExaminationId = _examinationId,
+                    MedicalImageId = CurrentMedicalImageId,
                     UserId = _currentUserId,
                     ModelName = "YOLOv8 fracture detector",
                     ModelVersion = "best1",
@@ -344,7 +357,7 @@ namespace WPFhospitalXray
                 btn_SaveForRetrain.Content = "Збереження...";
 
                 string finalLabel = tb_LiveLabel.Text;
-                await _datasetService.SaveSegmentationDataAsync(_imagePath, finalLabel);
+                await _datasetService.SaveSegmentationDataAsync(CurrentImagePath, finalLabel);
 
                 RetrainingRequestType requestType =
                     _currentDetections == null || _currentDetections.Count == 0
@@ -355,11 +368,12 @@ namespace WPFhospitalXray
                     ? $"False Negative: ШІ не виявив перелом, але лікар вручну розмітив його. Точок полігону: {_polygonPoints.Count}"
                     : $"Corrected Positive: лікар скоригував локалізацію перелому. Точок полігону: {_polygonPoints.Count}";
 
-                bool requestCreated = await _requestService.CreateRequestAsync(
-                    _examinationId,
-                    _currentUserId,
-                    requestType,
-                    comment);
+                bool requestCreated = await _requestService.CreateRequestForImageAsync(
+                        _examinationId,
+                        CurrentMedicalImageId,
+                        _currentUserId,
+                        requestType,
+                        comment);
 
                 if (_currentAnalysisResultId != null)
                 {
@@ -412,7 +426,7 @@ namespace WPFhospitalXray
         {
             try
             {
-                var savedResult = await _analysisResultService.GetLatestByExaminationIdAsync(_examinationId);
+                var savedResult = await _analysisResultService.GetLatestByMedicalImageIdAsync(CurrentMedicalImageId);
 
                 if (savedResult == null)
                 {
@@ -525,13 +539,14 @@ namespace WPFhospitalXray
                 AnalysisReviewStatus.Rejected,
                 "AI-результат відхилено лікарем: модель помилково визначила перелом.");
 
-            await _datasetService.SaveEmptyLabelAsync(_imagePath);
+            await _datasetService.SaveEmptyLabelAsync(CurrentImagePath);
 
-            bool requestCreated = await _requestService.CreateRequestAsync(
-                _examinationId,
-                _currentUserId,
-                RetrainingRequestType.FalsePositive,
-                "False Positive: ШІ виявив перелом, але лікар підтвердив, що перелому немає. Створено порожній label-файл.");
+            bool requestCreated = await _requestService.CreateRequestForImageAsync(
+                    _examinationId,
+                    CurrentMedicalImageId,
+                    _currentUserId,
+                    RetrainingRequestType.FalsePositive,
+                    "False Positive: ШІ виявив перелом, але лікар підтвердив, що перелому немає. Створено порожній label-файл.");
 
             MarkAnalysisAsFinal(AnalysisReviewStatus.Rejected);
 
@@ -564,7 +579,123 @@ namespace WPFhospitalXray
 
 
 
+        private async Task LoadImagesAsync()
+        {
+            try
+            {
+                _images = await _imageService.GetImagesByExaminationIdAsync(_examinationId);
 
+                if (_images == null || _images.Count == 0)
+                {
+                    MessageBox.Show(
+                        "Для цього обстеження немає завантажених знімків.",
+                        "Знімки відсутні",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+
+                    Close();
+                    return;
+                }
+
+                _currentImageIndex = 0;
+
+                await LoadCurrentImageAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Помилка завантаження знімків обстеження:\n{ex.Message}",
+                    "Помилка",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
+        private async Task LoadCurrentImageAsync()
+        {
+            ResetViewerStateForImage();
+
+            LoadOriginalImage();
+
+            await LoadSavedAnalysisAsync();
+
+            UpdateImageNavigationUi();
+        }
+
+        private void ResetViewerStateForImage()
+        {
+            _currentAnalysisResultId = null;
+            _currentAnalysisStatus = null;
+            _currentDetections = new List<FractureDetectionDto>();
+            _aiImage = null;
+
+            _polygonPoints.Clear();
+            DrawPolygon.Points.Clear();
+            tb_LiveLabel.Text = "";
+
+            var ellipses = DrawingCanvas.Children.OfType<System.Windows.Shapes.Ellipse>().ToList();
+            foreach (var dot in ellipses)
+            {
+                DrawingCanvas.Children.Remove(dot);
+            }
+
+            DrawingCanvas.Visibility = Visibility.Collapsed;
+            tb_LiveLabel.Visibility = Visibility.Collapsed;
+            btn_ClearPoints.Visibility = Visibility.Collapsed;
+            btn_SaveForRetrain.Visibility = Visibility.Collapsed;
+
+            cb_ShowMarkup.IsChecked = false;
+            cb_ShowMarkup.Visibility = Visibility.Collapsed;
+
+            tb_AIResult.Text = "";
+            tb_AIResult.Foreground = new SolidColorBrush(Color.FromRgb(82, 102, 129));
+
+            UpdateReviewButtonsVisibility();
+        }
+       
+
+        private void UpdateImageNavigationUi()
+        {
+            tb_ImageCounter.Text = $"Знімок {_currentImageIndex + 1} з {_images.Count}";
+
+            btn_PreviousImage.IsEnabled = _currentImageIndex > 0;
+            btn_NextImage.IsEnabled = _currentImageIndex < _images.Count - 1;
+
+            if (_images.Count <= 1)
+            {
+                btn_PreviousImage.Visibility = Visibility.Collapsed;
+                btn_NextImage.Visibility = Visibility.Collapsed;
+                tb_ImageCounter.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                btn_PreviousImage.Visibility = Visibility.Visible;
+                btn_NextImage.Visibility = Visibility.Visible;
+                tb_ImageCounter.Visibility = Visibility.Visible;
+            }
+        }
+
+        private async void btn_PreviousImage_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentImageIndex <= 0)
+            {
+                return;
+            }
+
+            _currentImageIndex--;
+            await LoadCurrentImageAsync();
+        }
+
+        private async void btn_NextImage_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentImageIndex >= _images.Count - 1)
+            {
+                return;
+            }
+
+            _currentImageIndex++;
+            await LoadCurrentImageAsync();
+        }
 
 
 

@@ -273,7 +273,10 @@ namespace WPFhospitalXray
                     // --- КІНЕЦЬ МАГІЇ ---
 
                     // 3. Зберігаємо новий (серверний) шлях у базу даних
-                    await _imageService.UpdateImagePathAsync(selectedExam.Id, destinationFilePath);
+                    await _imageService.AddImageAsync(
+                                selectedExam.Id,
+                                destinationFilePath,
+                                GetContentType(fileExtension));
 
                     MessageBox.Show("Знімок успішно завантажено та збережено на сервері!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
 
@@ -386,22 +389,16 @@ namespace WPFhospitalXray
             // 2. МАГІЯ WPF: Дістаємо дані саме того рядка, в якому знаходиться ця кнопка!
             if (button?.DataContext is BLL.DTOs.Examinations.ExaminationListDto selectedExam)
             {
-                // 3. Перевіряємо, чи є взагалі картинка
-                if (string.IsNullOrEmpty(selectedExam.ImagePath) || !System.IO.File.Exists(selectedExam.ImagePath))
-                {
-                    MessageBox.Show("Для цього обстеження ще не завантажено знімок або файл не знайдено.",
-                                    "Знімок відсутній", MessageBoxButton.OK, MessageBoxImage.Information);
-                    return;
-                }
+                
 
                 try
                 {
                     // Відкриваємо наше нове розумне вікно і передаємо йому картинку та сервіс
                     XRayViewerWindow viewerWindow = new XRayViewerWindow(
-                        selectedExam.ImagePath,
                         selectedExam.Id,
                         _currentUserId,
                         _currentRole,
+                        _imageService,
                         _aiService,
                         _datasetService,
                         _requestService,
@@ -454,6 +451,18 @@ namespace WPFhospitalXray
             {
                 MessageBox.Show($"Помилка при збереженні висновку:\n{ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+
+        private string GetContentType(string fileExtension)
+        {
+            return fileExtension.ToLower() switch
+            {
+                ".png" => "image/png",
+                ".jpg" => "image/jpeg",
+                ".jpeg" => "image/jpeg",
+                _ => "application/octet-stream"
+            };
         }
     }
 }

@@ -9,12 +9,12 @@ namespace BLL.Interface
 {
     public interface IMedicalImageService
     {
+        Task AddImageAsync(int examinationId, string imagePath, string contentType);
+
         Task UpdateImagePathAsync(int examinationId, string imagePath);
 
-        // Метод для отримання всіх знімків конкретного обстеження
         Task<List<MedicalImageDto>> GetImagesByExaminationIdAsync(int examinationId);
 
-        // Метод для видалення знімка (на майбутнє)
         Task DeleteImageAsync(int imageId);
     }
 }

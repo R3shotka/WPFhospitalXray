@@ -28,12 +28,9 @@ namespace BLL.Service
 
         public async Task<List<MedicalImageDto>> GetImagesByExaminationIdAsync(int examinationId)
         {
-            // Дістаємо всі знімки з бази
-            var allImages = await _medicalImageRepository.GetAllAsync();
+            var images = await _medicalImageRepository.GetByExaminationIdAsync(examinationId);
 
-            // Фільтруємо ті, що належать потрібному обстеженню, і перетворюємо в DTO
-            return allImages
-                .Where(img => img.ExaminationId == examinationId)
+            return images
                 .Select(img => new MedicalImageDto
                 {
                     Id = img.Id,
@@ -48,6 +45,11 @@ namespace BLL.Service
         public async Task DeleteImageAsync(int imageId)
         {
             await _medicalImageRepository.DeleteAsync(imageId);
+        }
+
+        public async Task AddImageAsync(int examinationId, string imagePath, string contentType)
+        {
+            await _medicalImageRepository.AddImageAsync(examinationId, imagePath, contentType);
         }
     }
 }

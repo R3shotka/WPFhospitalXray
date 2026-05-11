@@ -40,6 +40,7 @@ namespace DAL.Repositories
                 .Include(r => r.RequestByUser)
                 .Include(r => r.Examination)
                     .ThenInclude(e => e.Images)
+                .Include(r => r.MedicalImage)
                 .ToListAsync();
 
             return requests;
@@ -89,6 +90,14 @@ namespace DAL.Repositories
         {
             return await _dbContext.RetrainingRequests.AnyAsync(r =>
                 r.ExaminationId == examinationId &&
+                (r.Status == RetrainingRequestStatus.Pending ||
+                 r.Status == RetrainingRequestStatus.Processing));
+        }
+
+        public async Task<bool> HasActiveRequestByMedicalImageIdAsync(int medicalImageId)
+        {
+            return await _dbContext.RetrainingRequests.AnyAsync(r =>
+                r.MedicalImageId == medicalImageId &&
                 (r.Status == RetrainingRequestStatus.Pending ||
                  r.Status == RetrainingRequestStatus.Processing));
         }

@@ -79,5 +79,28 @@ namespace DAL.Repositories
 
             await _dbContext.SaveChangesAsync();
         }
+
+        public async Task AddImageAsync(int examinationId, string imagePath, string contentType)
+        {
+            var newImage = new MedicalImage
+            {
+                ExaminationId = examinationId,
+                FilePath = imagePath,
+                FileName = Path.GetFileName(imagePath),
+                ContentType = contentType,
+                UploadedAt = DateTime.Now
+            };
+
+            await _dbContext.MedicalImages.AddAsync(newImage);
+            await _dbContext.SaveChangesAsync();
+        }
+
+        public async Task<List<MedicalImage>> GetByExaminationIdAsync(int examinationId)
+        {
+            return await _dbContext.MedicalImages
+                .Where(m => m.ExaminationId == examinationId)
+                .OrderBy(m => m.UploadedAt)
+                .ToListAsync();
+        }
     }
 }

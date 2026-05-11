@@ -20,6 +20,7 @@ namespace BLL.Service
             var entity = new AnalysisResult
             {
                 ExaminationId = dto.ExaminationId,
+                MedicalImageId = dto.MedicalImageId,
                 UserId = dto.UserId,
                 ModelName = dto.ModelName,
                 ModelVersion = dto.ModelVersion,
@@ -57,6 +58,7 @@ namespace BLL.Service
             {
                 Id = entity.Id,
                 ExaminationId = entity.ExaminationId,
+                MedicalImageId = entity.MedicalImageId,
                 ModelName = entity.ModelName,
                 ModelVersion = entity.ModelVersion,
                 ModelPath = entity.ModelPath,
@@ -78,6 +80,39 @@ namespace BLL.Service
         public async Task UpdateStatusAsync(int analysisResultId, AnalysisReviewStatus status, string? comment)
         {
             await _repository.UpdateStatusAsync(analysisResultId, status, comment);
+        }
+
+
+        public async Task<AnalysisResultDto?> GetLatestByMedicalImageIdAsync(int medicalImageId)
+        {
+            var entity = await _repository.GetLatestByMedicalImageIdAsync(medicalImageId);
+
+            if (entity == null)
+            {
+                return null;
+            }
+
+            return new AnalysisResultDto
+            {
+                Id = entity.Id,
+                ExaminationId = entity.ExaminationId,
+                MedicalImageId = entity.MedicalImageId,
+                ModelName = entity.ModelName,
+                ModelVersion = entity.ModelVersion,
+                ModelPath = entity.ModelPath,
+                AnalyzedAt = entity.AnalyzedAt,
+                Status = entity.Status,
+                DoctorComment = entity.DoctorComment,
+                Detections = entity.DetectionBoxes.Select(b => new FractureDetectionDto
+                {
+                    ClassName = b.ClassName,
+                    Confidence = b.Confidence,
+                    X = b.X,
+                    Y = b.Y,
+                    Width = b.Width,
+                    Height = b.Height
+                }).ToList()
+            };
         }
     }
 }
