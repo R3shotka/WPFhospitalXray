@@ -28,7 +28,7 @@ namespace BLL.Service
                 Id = e.Id,
                 ExaminationDate = e.ExaminationDate.ToString("dd.MM.yyyy"),
 
-                ImagePath = e.Images.FirstOrDefault()?.FilePath,
+                ImagesCount = e.Images?.Count ?? 0,
 
                 RadiologistConclusion = e.Conclusions
                     .FirstOrDefault(c => c.Type == ConclusionType.Radiologist)?.ConclusionText ?? "Очікує висновку",

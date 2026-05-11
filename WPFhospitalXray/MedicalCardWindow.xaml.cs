@@ -308,16 +308,16 @@ namespace WPFhospitalXray
                 try
                 {
                     // 3. ЗБЕРІГАЄМО ШЛЯХ до файлу перед тим, як видалити запис з БД
-                    string imagePathToDelete = selectedExam.ImagePath;
+                    var imagesToDelete = await _imageService.GetImagesByExaminationIdAsync(selectedExam.Id);
 
-                    // 4. Видаляємо обстеження з бази (виклик сервісу)
-                    // (Якщо у тебе ще немає цього методу в сервісі - просто додай його, він має викликати _repository.DeleteAsync)
                     await _examinationService.DeleteExaminationAsync(selectedExam.Id);
 
-                    // 5. ФІЗИЧНО ВИДАЛЯЄМО ФАЙЛ з нашої "серверної" папки
-                    if (!string.IsNullOrEmpty(imagePathToDelete) && System.IO.File.Exists(imagePathToDelete))
+                    foreach (var image in imagesToDelete)
                     {
-                        System.IO.File.Delete(imagePathToDelete);
+                        if (!string.IsNullOrEmpty(image.FilePath) && System.IO.File.Exists(image.FilePath))
+                        {
+                            System.IO.File.Delete(image.FilePath);
+                        }
                     }
 
                     MessageBox.Show("Обстеження та знімок успішно видалено.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -332,30 +332,43 @@ namespace WPFhospitalXray
             }
         }
 
-        private void dg_Examinations_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        private async void dg_Examinations_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
-            // Перевіряємо, чи дійсно вибрано рядок
             if (dg_Examinations.SelectedItem is BLL.DTOs.Examinations.ExaminationListDto selectedExam)
             {
-                // 1. Завантажуємо текст висновку рентгенолога
                 tb_RadiologistConclusion.Text = selectedExam.RadiologistConclusion;
-
-                // 2. Завантажуємо текст плану лікування хірурга 
-                // (⚠️ Переконайся, що у твоєму класі ExaminationListDto є властивість SurgeonConclusion, 
-                // або заміни її на ту назву, яку ти використовуєш у DTO)
                 tb_SurgeonConclusion.Text = selectedExam.SurgeonConclusion;
 
-                // 3. Показуємо картинку (безпечний метод)
-                ShowImage(selectedExam.ImagePath);
+                await ShowFirstImagePreviewAsync(selectedExam.Id);
             }
             else
             {
-                // Якщо нічого не вибрано - очищаємо ОБИДВА поля
                 tb_RadiologistConclusion.Clear();
                 tb_SurgeonConclusion.Clear();
                 img_Preview.Source = null;
             }
         }
+        private async Task ShowFirstImagePreviewAsync(int examinationId)
+        {
+            try
+            {
+                var images = await _imageService.GetImagesByExaminationIdAsync(examinationId);
+                var firstImage = images.FirstOrDefault();
+
+                if (firstImage == null || string.IsNullOrEmpty(firstImage.FilePath) || !File.Exists(firstImage.FilePath))
+                {
+                    img_Preview.Source = null;
+                    return;
+                }
+
+                ShowImage(firstImage.FilePath);
+            }
+            catch
+            {
+                img_Preview.Source = null;
+            }
+        }
+
         private void ShowImage(string path)
         {
             if (string.IsNullOrEmpty(path) || !File.Exists(path))
@@ -383,17 +396,21 @@ namespace WPFhospitalXray
         }
         private void btn_ViewImage_Click(object sender, RoutedEventArgs e)
         {
-            // 1. Отримуємо кнопку, на яку клікнули
             var button = sender as System.Windows.Controls.Button;
 
-            // 2. МАГІЯ WPF: Дістаємо дані саме того рядка, в якому знаходиться ця кнопка!
             if (button?.DataContext is BLL.DTOs.Examinations.ExaminationListDto selectedExam)
             {
-                
+                if (selectedExam.ImagesCount == 0)
+                {
+                    MessageBox.Show("Для цього обстеження ще не завантажено жодного знімка.",
+                                    "Знімки відсутні",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Information);
+                    return;
+                }
 
                 try
                 {
-                    // Відкриваємо наше нове розумне вікно і передаємо йому картинку та сервіс
                     XRayViewerWindow viewerWindow = new XRayViewerWindow(
                         selectedExam.Id,
                         _currentUserId,
@@ -403,11 +420,12 @@ namespace WPFhospitalXray
                         _datasetService,
                         _requestService,
                         _analysisResultService);
+
                     viewerWindow.ShowDialog();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Не вдалося відкрити знімок:\n{ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Не вдалося відкрити знімки обстеження:\n{ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }

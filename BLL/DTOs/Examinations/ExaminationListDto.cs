@@ -9,11 +9,17 @@ namespace BLL.DTOs.Examinations
     public class ExaminationListDto
     {
         public int Id { get; set; }
+
         public string ExaminationDate { get; set; }
 
-        // Окремі поля для таблиці
+        public int ImagesCount { get; set; }
+
+        public string ImagesInfo => ImagesCount == 0
+            ? "Знімків немає"
+            : $"Знімків: {ImagesCount}";
+
         public string RadiologistConclusion { get; set; }
+
         public string SurgeonConclusion { get; set; }
-        public string ImagePath { get; set; }
     }
 }
