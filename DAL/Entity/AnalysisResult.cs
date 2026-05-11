@@ -21,8 +21,8 @@ namespace DAL.Entity
 
         // Новий правильний зв’язок:
         // AI-результат належить конкретному рентгенівському знімку.
-        public int? MedicalImageId { get; set; }
-        public MedicalImage? MedicalImage { get; set; }
+        public int MedicalImageId { get; set; }
+        public MedicalImage MedicalImage { get; set; }
 
 
 

@@ -53,32 +53,7 @@ namespace DAL.Repositories
             }
         }
 
-        public async Task UpdateImagePathAsync(int examinationId, string newImagePath)
-        {
-            var medImage = await _dbContext.MedicalImages
-                .FirstOrDefaultAsync(m => m.ExaminationId == examinationId);
-
-            if (medImage != null)
-            {
-                medImage.FilePath = newImagePath;
-                medImage.FileName = Path.GetFileName(newImagePath);
-                medImage.UploadedAt = DateTime.Now;
-            }
-            else
-            {
-                var newImage = new MedicalImage
-                {
-                    ExaminationId = examinationId,
-                    FilePath = newImagePath,
-                    FileName = Path.GetFileName(newImagePath),
-                    ContentType = "image/jpeg",
-                    UploadedAt = DateTime.Now
-                };
-                await _dbContext.MedicalImages.AddAsync(newImage);
-            }
-
-            await _dbContext.SaveChangesAsync();
-        }
+        
 
         public async Task AddImageAsync(int examinationId, string imagePath, string contentType)
         {

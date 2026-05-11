@@ -10,7 +10,7 @@ namespace BLL.DTOs.AnalysisResults
         public int ExaminationId { get; set; }
 
         // Новий зв’язок із конкретним знімком
-        public int? MedicalImageId { get; set; }
+        public int MedicalImageId { get; set; }
 
         public string ModelName { get; set; }
         public string ModelVersion { get; set; }

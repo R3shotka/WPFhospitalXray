@@ -11,6 +11,6 @@ namespace DAL.Interfaces
     {
         Task AddImageAsync(int examinationId, string imagePath, string contentType);
         Task<List<MedicalImage>> GetByExaminationIdAsync(int examinationId);
-        Task UpdateImagePathAsync(int examinationId, string newImagePath);
+        
     }
 }

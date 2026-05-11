@@ -14,7 +14,7 @@ namespace BLL.Interface
         Task<List<RetrainingRequestDto>> GetAllAsync();
 
         // Створити новий запит (викликатиме лікар з вікна розмітки)
-        Task<bool> CreateRequestAsync(int examinationId, string userId, RetrainingRequestType requestType, string comment = null);
+        
         Task<bool> CreateRequestForImageAsync(
             int examinationId,
             int medicalImageId,

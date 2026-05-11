@@ -19,12 +19,7 @@ namespace BLL.Service
             _medicalImageRepository = medicalImageRepository;
         }
 
-        public async Task UpdateImagePathAsync(int examinationId, string imagePath)
-        {
-            // Викликаємо наш розумний метод з репозиторію, який сам вирішить: 
-            // оновити існуючий чи створити новий знімок
-            await _medicalImageRepository.UpdateImagePathAsync(examinationId, imagePath);
-        }
+        
 
         public async Task<List<MedicalImageDto>> GetImagesByExaminationIdAsync(int examinationId)
         {

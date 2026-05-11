@@ -46,25 +46,7 @@ namespace DAL.Repositories
                 .FirstOrDefaultAsync(a => a.Id == id);
         }
 
-        public async Task<List<AnalysisResult>> GetByExaminationIdAsync(int examinationId)
-        {
-            return await _dbContext.AnalysisResults
-                .Include(a => a.DetectionBoxes)
-                .Include(a => a.User)
-                .Where(a => a.ExaminationId == examinationId)
-                .OrderByDescending(a => a.AnalyzedAt)
-                .ToListAsync();
-        }
-
-        public async Task<AnalysisResult?> GetLatestByExaminationIdAsync(int examinationId)
-        {
-            return await _dbContext.AnalysisResults
-                .Include(a => a.DetectionBoxes)
-                .Include(a => a.User)
-                .Where(a => a.ExaminationId == examinationId)
-                .OrderByDescending(a => a.AnalyzedAt)
-                .FirstOrDefaultAsync();
-        }
+       
 
         public async Task UpdateAsync(AnalysisResult entity)
         {

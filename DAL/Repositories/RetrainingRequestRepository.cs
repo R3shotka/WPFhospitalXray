@@ -86,13 +86,7 @@ namespace DAL.Repositories
 
         
 
-        public async Task<bool> HasActiveRequestByExaminationIdAsync(int examinationId)
-        {
-            return await _dbContext.RetrainingRequests.AnyAsync(r =>
-                r.ExaminationId == examinationId &&
-                (r.Status == RetrainingRequestStatus.Pending ||
-                 r.Status == RetrainingRequestStatus.Processing));
-        }
+        
 
         public async Task<bool> HasActiveRequestByMedicalImageIdAsync(int medicalImageId)
         {

@@ -30,8 +30,8 @@ namespace DAL.Entity
 
         // Новий правильний зв’язок:
         // запит на донавчання стосується конкретного знімка.
-        public int? MedicalImageId { get; set; }
-        public MedicalImage? MedicalImage { get; set; }
+        public int MedicalImageId { get; set; }
+        public MedicalImage MedicalImage { get; set; }
 
 
 

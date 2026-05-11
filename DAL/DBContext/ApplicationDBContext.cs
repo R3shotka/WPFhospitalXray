@@ -142,13 +142,15 @@ namespace DAL.DBContext
                       .OnDelete(DeleteBehavior.Cascade); // При видаленні обстеження - видаляються зображення
 
                 entity.HasMany(mi => mi.AnalysisResults)
-                      .WithOne(a => a.MedicalImage)
-                      .HasForeignKey(a => a.MedicalImageId)
-                      .OnDelete(DeleteBehavior.Restrict);
+                        .WithOne(a => a.MedicalImage)
+                        .HasForeignKey(a => a.MedicalImageId)
+                        .IsRequired()
+                        .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasMany(mi => mi.RetrainingRequests)
                       .WithOne(r => r.MedicalImage)
                       .HasForeignKey(r => r.MedicalImageId)
+                      .IsRequired()
                       .OnDelete(DeleteBehavior.Restrict);
             });
 

@@ -15,7 +15,7 @@ namespace DAL.Interfaces
         Task<List<RetrainingRequest>> GetByStatusAsync(RetrainingRequestStatus status);
 
         // Старий метод поки залишаємо для сумісності
-        Task<bool> HasActiveRequestByExaminationIdAsync(int examinationId);
+        
 
         // Новий правильний метод
         Task<bool> HasActiveRequestByMedicalImageIdAsync(int medicalImageId);

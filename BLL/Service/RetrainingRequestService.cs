@@ -37,7 +37,7 @@ namespace BLL.Service
                 Status = r.Status,
                 Comment = r.Comment,
 
-                ImagePath = r.MedicalImage?.FilePath ?? r.Examination?.Images?.FirstOrDefault()?.FilePath,
+                ImagePath = r.MedicalImage.FilePath,
 
                 RequestType = r.RequestType,
                 RequestTypeDisplayName = GetRequestTypeDisplayName(r.RequestType),
@@ -46,29 +46,7 @@ namespace BLL.Service
             return dtos;
         }
 
-        public async Task<bool> CreateRequestAsync(int examinationId, string userId, RetrainingRequestType requestType, string comment = null)
-        {
-            bool alreadyExists = await _repository.HasActiveRequestByExaminationIdAsync(examinationId);
-
-            if (alreadyExists)
-            {
-                return false;
-            }
-
-            var newRequest = new RetrainingRequest
-            {
-                ExaminationId = examinationId,
-                RequestByUserId = userId,
-                RequestedAt = DateTime.Now,
-                Status = RetrainingRequestStatus.Pending,
-                RequestType = requestType,
-                Comment = comment
-            };
-
-            await _repository.AddAsync(newRequest);
-
-            return true;
-        }
+        
 
         public async Task UpdateStatusAsync(int requestId, RetrainingRequestStatus newStatus)
         {

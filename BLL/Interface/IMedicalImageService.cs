@@ -11,7 +11,7 @@ namespace BLL.Interface
     {
         Task AddImageAsync(int examinationId, string imagePath, string contentType);
 
-        Task UpdateImagePathAsync(int examinationId, string imagePath);
+        
 
         Task<List<MedicalImageDto>> GetImagesByExaminationIdAsync(int examinationId);
 
