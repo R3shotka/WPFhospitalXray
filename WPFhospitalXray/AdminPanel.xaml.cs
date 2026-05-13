@@ -33,13 +33,14 @@ namespace WPFhospitalXray
         private readonly IDatasetService _datasetService;
         private readonly IRetrainingRequestService _requestService;
         private readonly IAnalysisResultService _analysisResultService;
+        private readonly IImageStorageService _imageStorageService;
 
         private readonly string _currentUserId;
 
         private IEnumerable<PatientsListDto> _allPatients;
 
         // DI автоматично передасть сюди готовий IApplicationUserService при відкритті AdminPanel
-        public AdminPanel(IApplicationUserService userService, IPatientService patientService, string role, IMedicalCardService medicalCardService, IExaminationService examinationService, IMedicalImageService imageService, IConclusionService conclusionService, string currentUserId, IAIAnalyzerService aIAnalyzerService, IDatasetService datasetService, IRetrainingRequestService requestService, IAnalysisResultService analysisResultService)
+        public AdminPanel(IApplicationUserService userService, IPatientService patientService, string role, IMedicalCardService medicalCardService, IExaminationService examinationService, IMedicalImageService imageService, IConclusionService conclusionService, string currentUserId, IAIAnalyzerService aIAnalyzerService, IDatasetService datasetService, IRetrainingRequestService requestService, IAnalysisResultService analysisResultService, IImageStorageService imageStorageService)
         {
             InitializeComponent();
             _userService = userService;
@@ -57,6 +58,7 @@ namespace WPFhospitalXray
             _datasetService = datasetService;
             _requestService = requestService;
             _analysisResultService = analysisResultService;
+            _imageStorageService = imageStorageService;
         }
         private void ApplyPermissions()
         {
@@ -258,7 +260,8 @@ namespace WPFhospitalXray
                     _aiAnalyzerService,
                     _datasetService,
                     _requestService,
-                    _analysisResultService); // <— Якщо цього сервісу тут ще немає, додай його в конструктор AdminPanel!
+                    _analysisResultService,
+                    _imageStorageService); // <— Якщо цього сервісу тут ще немає, додай його в конструктор AdminPanel!
 
                 // 4. Передаємо дані (ID та Роль)
                 medicalCardWindow.InitializeData(selectedPatient.Id, _currentUserRole, _currentUserId);

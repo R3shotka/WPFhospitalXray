@@ -18,6 +18,7 @@ namespace WPFhospitalXray
         private readonly IDatasetService _datasetService;
         private readonly IRetrainingRequestService _requestService;
         private readonly IAnalysisResultService _analysisResultService;
+        private readonly IImageStorageService _imageStorageService;
 
         private string _currentRole;
         private string _patientId;
@@ -35,7 +36,8 @@ namespace WPFhospitalXray
             IAIAnalyzerService aiService,
             IDatasetService datasetService,
             IRetrainingRequestService requestService,
-            IAnalysisResultService analysisResultService)
+            IAnalysisResultService analysisResultService,
+            IImageStorageService imageStorageService)
         {
             InitializeComponent();
             _patientService = patientService;
@@ -47,6 +49,7 @@ namespace WPFhospitalXray
             _datasetService = datasetService;
             _requestService = requestService;
             _analysisResultService = analysisResultService;
+            _imageStorageService = imageStorageService;
         }
         // ЗРОБИЛИ МЕТОД ASYNC, щоб він міг чекати на дані з бази
         public async void InitializeData(string patientId, string userRole, string userId)
@@ -245,47 +248,33 @@ namespace WPFhospitalXray
             {
                 try
                 {
-                    string sourceFilePath = openFileDialog.FileName; // Звідки беремо файл (напр. флешка)
-
-                    // --- МАГІЯ СЕРВЕРНОЇ ПАПКИ ---
-
-                    // Крок А: Вказуємо нашу "серверну" папку. 
-                    // Поки що це диск C:. Коли з'явиться справжня мережа, ти просто напишеш тут щось типу @"\\SERVER-PC\HospitalImages"
-                    string serverFolderPath = @"D:\HospitalServer\Images";
-
-                    // Крок Б: Якщо цієї папки ще не існує (перший запуск) - створюємо її!
-                    if (!Directory.Exists(serverFolderPath))
-                    {
-                        Directory.CreateDirectory(serverFolderPath);
-                    }
-
-                    // Крок В: Створюємо унікальне ім'я для файлу, щоб знімки різних людей не переплуталися.
-                    // Використовуємо ID обстеження + унікальний код (Guid) + оригінальне розширення (.jpg)
+                    string sourceFilePath = openFileDialog.FileName;
                     string fileExtension = Path.GetExtension(sourceFilePath);
-                    string uniqueFileName = $"Exam_{selectedExam.Id}_{Guid.NewGuid()}{fileExtension}";
 
-                    // Крок Г: Формуємо фінальний шлях, куди будемо копіювати
-                    string destinationFilePath = Path.Combine(serverFolderPath, uniqueFileName);
+                    string destinationFilePath = await _imageStorageService.SaveImageAsync(
+                        selectedExam.Id,
+                        sourceFilePath);
 
-                    // Крок Д: ФІЗИЧНО КОПІЮЄМО ФАЙЛ у нашу "серверну" папку
-                    File.Copy(sourceFilePath, destinationFilePath, true);
-
-                    // --- КІНЕЦЬ МАГІЇ ---
-
-                    // 3. Зберігаємо новий (серверний) шлях у базу даних
                     await _imageService.AddImageAsync(
-                                selectedExam.Id,
-                                destinationFilePath,
-                                GetContentType(fileExtension));
+                        selectedExam.Id,
+                        destinationFilePath,
+                        _imageStorageService.GetContentType(fileExtension));
 
-                    MessageBox.Show("Знімок успішно завантажено та збережено на сервері!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(
+                        "Знімок успішно завантажено та збережено у файловому сховищі!",
+                        "Успіх",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
 
-                    // 4. Оновлюємо таблицю
                     await LoadExaminationsAsync();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Помилка при збереженні знімка:\n{ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(
+                        $"Помилка при збереженні знімка:\n{ex.Message}",
+                        "Помилка",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
                 }
             }
         }
@@ -314,10 +303,7 @@ namespace WPFhospitalXray
 
                     foreach (var image in imagesToDelete)
                     {
-                        if (!string.IsNullOrEmpty(image.FilePath) && System.IO.File.Exists(image.FilePath))
-                        {
-                            System.IO.File.Delete(image.FilePath);
-                        }
+                        await _imageStorageService.DeleteImageAsync(image.FilePath);
                     }
 
                     MessageBox.Show("Обстеження та знімок успішно видалено.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -472,15 +458,6 @@ namespace WPFhospitalXray
         }
 
 
-        private string GetContentType(string fileExtension)
-        {
-            return fileExtension.ToLower() switch
-            {
-                ".png" => "image/png",
-                ".jpg" => "image/jpeg",
-                ".jpeg" => "image/jpeg",
-                _ => "application/octet-stream"
-            };
-        }
+        
     }
 }

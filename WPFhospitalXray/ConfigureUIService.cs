@@ -28,6 +28,9 @@ namespace WPFhospitalXray
             services.AddTransient<IInitializerService, InitializerService>();
             services.AddTransient<IAuthService, BLL.Service.AuthService>();
 
+            services.AddSingleton<IApplicationPathService, ApplicationPathService>();
+            services.AddScoped<IImageStorageService, ImageStorageService>();
+
             // --- ДОДАЄМО НАШІ НОВІ СЕРВІСИ ---
 
             // 1. Реєструємо репозиторій з бази даних (DAL)

@@ -14,6 +14,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\BLL\Service\ApplicationPathService.cs" Link="ApplicationPathService.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="Models\best.onnx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -47,5 +51,11 @@
   <ItemGroup>
     <Folder Include="Nurse\" />
   </ItemGroup>
+	
+<ItemGroup>
+  <None Update="appsettings.json">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </None>
+</ItemGroup>
 
 </Project>
