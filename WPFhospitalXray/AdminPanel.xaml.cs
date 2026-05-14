@@ -35,13 +35,14 @@ namespace WPFhospitalXray
         private readonly IAnalysisResultService _analysisResultService;
         private readonly IImageStorageService _imageStorageService;
         private readonly IApplicationPathService _pathService;
+        private readonly IDatasetExportService _datasetExportService;
 
         private readonly string _currentUserId;
 
         private IEnumerable<PatientsListDto> _allPatients;
 
         // DI автоматично передасть сюди готовий IApplicationUserService при відкритті AdminPanel
-        public AdminPanel(IApplicationUserService userService, IPatientService patientService, string role, IMedicalCardService medicalCardService, IExaminationService examinationService, IMedicalImageService imageService, IConclusionService conclusionService, string currentUserId, IAIAnalyzerService aIAnalyzerService, IDatasetService datasetService, IRetrainingRequestService requestService, IAnalysisResultService analysisResultService, IImageStorageService imageStorageService, IApplicationPathService pathService)
+        public AdminPanel(IApplicationUserService userService, IPatientService patientService, string role, IMedicalCardService medicalCardService, IExaminationService examinationService, IMedicalImageService imageService, IConclusionService conclusionService, string currentUserId, IAIAnalyzerService aIAnalyzerService, IDatasetService datasetService, IRetrainingRequestService requestService, IAnalysisResultService analysisResultService, IImageStorageService imageStorageService, IApplicationPathService pathService, IDatasetExportService datasetExportService)
         {
             InitializeComponent();
             _userService = userService;
@@ -61,6 +62,7 @@ namespace WPFhospitalXray
             _analysisResultService = analysisResultService;
             _imageStorageService = imageStorageService;
             _pathService = pathService;
+            _datasetExportService = datasetExportService;
         }
         private void ApplyPermissions()
         {
@@ -87,7 +89,12 @@ namespace WPFhospitalXray
         private void OpenRetrainManager_Click(object sender, RoutedEventArgs e)
         {
             // Відкриваємо вікно керування датасетом
-            var retrainWindow = new RetrainManagerWindow(_requestService, _datasetService, _pathService);
+            var retrainWindow = new RetrainManagerWindow(
+                _requestService,
+                _datasetService,
+                _pathService,
+                _datasetExportService);
+
             retrainWindow.ShowDialog();
         }
 

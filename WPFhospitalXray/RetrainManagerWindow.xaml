@@ -26,9 +26,32 @@
                     <Button x:Name="btn_Reject" Content="❌ Відхилити знімок" Height="35" Padding="15,0" Margin="0,0,10,0"
                             Background="#E74C3C" Foreground="White" BorderThickness="0" Cursor="Hand" Click="btn_Reject_Click"/>
                 </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button x:Name="btn_ExportDataset"
+            Content="📦 Сформувати датасет"
+            Height="40"
+            Padding="20,0"
+            Background="#526681"
+            Foreground="White"
+            FontWeight="Bold"
+            FontSize="14"
+            BorderThickness="0"
+            Cursor="Hand"
+            Click="btn_ExportDataset_Click"
+            Margin="0,0,15,0"/>
 
-                <Button x:Name="btn_StartRetrain" Grid.Column="1" Content="🚀 Запустити донавчання ШІ" Height="40" Padding="20,0"
-                        Background="#4B7DC0" Foreground="White" FontWeight="Bold" FontSize="14" BorderThickness="0" Cursor="Hand" Click="btn_StartRetrain_Click"/>
+                    <Button x:Name="btn_StartRetrain"
+            Content="🚀 Запустити донавчання ШІ"
+            Height="40"
+            Padding="20,0"
+            Background="#4B7DC0"
+            Foreground="White"
+            FontWeight="Bold"
+            FontSize="14"
+            BorderThickness="0"
+            Cursor="Hand"
+            Click="btn_StartRetrain_Click"/>
+                </StackPanel>
             </Grid>
         </Border>
 

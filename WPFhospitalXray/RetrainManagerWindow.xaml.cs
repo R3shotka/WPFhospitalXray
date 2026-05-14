@@ -13,17 +13,20 @@ namespace WPFhospitalXray
         private readonly IRetrainingRequestService _requestService;
         private readonly IDatasetService _datasetService;
         private readonly IApplicationPathService _pathService;
+        private readonly IDatasetExportService _datasetExportService;
 
         public RetrainManagerWindow(
             IRetrainingRequestService requestService,
             IDatasetService datasetService,
-            IApplicationPathService pathService)
+            IApplicationPathService pathService,
+            IDatasetExportService datasetExportService)
         {
             InitializeComponent();
 
             _requestService = requestService;
             _datasetService = datasetService;
             _pathService = pathService;
+            _datasetExportService = datasetExportService;
 
             _ = LoadRequestsAsync();
         }
@@ -129,7 +132,56 @@ namespace WPFhospitalXray
 
         private void btn_StartRetrain_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Ця кнопка оживе на наступному етапі! 🚀");
+            MessageBox.Show(
+                "Локальне донавчання моделі передбачено як окремий етап після формування датасету. " +
+                "У наступній версії цей режим запускатиме локальний Python-скрипт навчання YOLO-моделі та реєструватиме нову версію моделі після перевірки якості.",
+                "Локальне донавчання ШІ",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+
+        private async void btn_ExportDataset_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                btn_ExportDataset.IsEnabled = false;
+                btn_ExportDataset.Content = "Формування...";
+
+                var result = await _datasetExportService.ExportApprovedRequestsAsync();
+
+                await LoadRequestsAsync();
+
+                string message =
+                    $"Датасет сформовано.\n\n" +
+                    $"Шлях: {result.DatasetPath}\n" +
+                    $"Схвалених запитів: {result.TotalRequests}\n" +
+                    $"Експортовано: {result.ExportedItems}\n" +
+                    $"Пропущено: {result.SkippedItems}";
+
+                if (result.Warnings.Any())
+                {
+                    message += "\n\nПопередження:\n" + string.Join("\n", result.Warnings);
+                }
+
+                MessageBox.Show(
+                    message,
+                    "Формування датасету",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Помилка формування датасету:\n{ex.Message}",
+                    "Помилка",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                btn_ExportDataset.IsEnabled = true;
+                btn_ExportDataset.Content = "📦 Сформувати датасет";
+            }
         }
     }
 }

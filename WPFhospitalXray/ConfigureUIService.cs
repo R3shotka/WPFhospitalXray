@@ -63,6 +63,7 @@ namespace WPFhospitalXray
             services.AddScoped<IAIAnalyzerService, AIAnalyzerService>();
 
             services.AddScoped<IDatasetService, DatasetService>();
+            services.AddScoped<IDatasetExportService, DatasetExportService>();
 
             services.AddScoped<IRetrainingRequest, RetrainingRequestRepository>();
             services.AddScoped<IRetrainingRequestService, RetrainingRequestService>();
