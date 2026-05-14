@@ -34,13 +34,14 @@ namespace WPFhospitalXray
         private readonly IRetrainingRequestService _requestService;
         private readonly IAnalysisResultService _analysisResultService;
         private readonly IImageStorageService _imageStorageService;
+        private readonly IApplicationPathService _pathService;
 
         private readonly string _currentUserId;
 
         private IEnumerable<PatientsListDto> _allPatients;
 
         // DI автоматично передасть сюди готовий IApplicationUserService при відкритті AdminPanel
-        public AdminPanel(IApplicationUserService userService, IPatientService patientService, string role, IMedicalCardService medicalCardService, IExaminationService examinationService, IMedicalImageService imageService, IConclusionService conclusionService, string currentUserId, IAIAnalyzerService aIAnalyzerService, IDatasetService datasetService, IRetrainingRequestService requestService, IAnalysisResultService analysisResultService, IImageStorageService imageStorageService)
+        public AdminPanel(IApplicationUserService userService, IPatientService patientService, string role, IMedicalCardService medicalCardService, IExaminationService examinationService, IMedicalImageService imageService, IConclusionService conclusionService, string currentUserId, IAIAnalyzerService aIAnalyzerService, IDatasetService datasetService, IRetrainingRequestService requestService, IAnalysisResultService analysisResultService, IImageStorageService imageStorageService, IApplicationPathService pathService)
         {
             InitializeComponent();
             _userService = userService;
@@ -59,6 +60,7 @@ namespace WPFhospitalXray
             _requestService = requestService;
             _analysisResultService = analysisResultService;
             _imageStorageService = imageStorageService;
+            _pathService = pathService;
         }
         private void ApplyPermissions()
         {
@@ -85,7 +87,7 @@ namespace WPFhospitalXray
         private void OpenRetrainManager_Click(object sender, RoutedEventArgs e)
         {
             // Відкриваємо вікно керування датасетом
-            var retrainWindow = new RetrainManagerWindow(_requestService, _datasetService);
+            var retrainWindow = new RetrainManagerWindow(_requestService, _datasetService, _pathService);
             retrainWindow.ShowDialog();
         }
 

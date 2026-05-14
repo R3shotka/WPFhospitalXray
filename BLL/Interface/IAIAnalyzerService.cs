@@ -10,6 +10,12 @@ namespace BLL.Interface
     public interface IAIAnalyzerService
     {
         // Метод для аналізу зображення за допомогою AI
+        string ModelName { get; }
+
+        string ModelVersion { get; }
+
+        string ModelPath { get; }
+
         Task<List<FractureDetectionDto>> AnalyzeImageAsync(string imagePath);
     }
 }

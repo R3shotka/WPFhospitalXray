@@ -1,54 +1,50 @@
 ﻿using BLL.Interface;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.IO;
 
 namespace BLL.Service
 {
     public class DatasetService : IDatasetService
     {
+        private readonly IApplicationPathService _pathService;
+
+        public DatasetService(IApplicationPathService pathService)
+        {
+            _pathService = pathService;
+        }
+
         public async Task SaveSegmentationDataAsync(string originalImagePath, string yoloLabelString)
         {
-            // 1. Папка "Карантин" для розміток, які ще не перевірив Адмін
-            string tempLabelsFolder = @"D:\HospitalServer\TempLabels";
+            _pathService.EnsureStorageFolders();
 
-            // Якщо папки немає - створюємо
-            Directory.CreateDirectory(tempLabelsFolder);
+            string labelPath = GetLabelPath(originalImagePath);
 
-            // 2. Робимо так, щоб ім'я текстового файлу ідеально збігалося з іменем картинки
-            // Наприклад: якщо картинка "Exam_123_Guid.jpg", то файл буде "Exam_123_Guid.txt"
-            string fileName = Path.GetFileNameWithoutExtension(originalImagePath) + ".txt";
-            string destLabelPath = Path.Combine(tempLabelsFolder, fileName);
-
-            // 3. Зберігаємо ТІЛЬКИ текст. 
-            // Картинку ми поки що не дублюємо, щоб не засмічувати диск до перевірки Адміном!
-            await File.WriteAllTextAsync(destLabelPath, yoloLabelString);
+            await File.WriteAllTextAsync(labelPath, yoloLabelString);
         }
 
         public async Task DeleteTempLabelAsync(string originalImagePath)
         {
-            string tempLabelsFolder = @"D:\HospitalServer\TempLabels";
-            string fileName = Path.GetFileNameWithoutExtension(originalImagePath) + ".txt";
-            string destLabelPath = Path.Combine(tempLabelsFolder, fileName);
+            string labelPath = GetLabelPath(originalImagePath);
 
-            if (File.Exists(destLabelPath))
+            if (File.Exists(labelPath))
             {
-                await Task.Run(() => File.Delete(destLabelPath));
+                await Task.Run(() => File.Delete(labelPath));
             }
         }
 
         public async Task SaveEmptyLabelAsync(string originalImagePath)
         {
-            string tempLabelsFolder = @"D:\HospitalServer\TempLabels";
+            _pathService.EnsureStorageFolders();
 
-            Directory.CreateDirectory(tempLabelsFolder);
+            string labelPath = GetLabelPath(originalImagePath);
 
+            await File.WriteAllTextAsync(labelPath, string.Empty);
+        }
+
+        private string GetLabelPath(string originalImagePath)
+        {
             string fileName = Path.GetFileNameWithoutExtension(originalImagePath) + ".txt";
-            string destLabelPath = Path.Combine(tempLabelsFolder, fileName);
 
-            await File.WriteAllTextAsync(destLabelPath, string.Empty);
+            return Path.Combine(_pathService.TempLabelsFolder, fileName);
         }
     }
 }

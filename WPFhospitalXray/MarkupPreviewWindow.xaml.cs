@@ -10,12 +10,16 @@ namespace WPFhospitalXray
     public partial class MarkupPreviewWindow : Window
     {
         private readonly string _imagePath;
+        private readonly string _labelPath;
+
 
         // Конструктор приймає шлях до оригінальної картинки
-        public MarkupPreviewWindow(string imagePath)
+        public MarkupPreviewWindow(string imagePath, string labelPath)
         {
             InitializeComponent();
+
             _imagePath = imagePath;
+            _labelPath = labelPath;
 
             DrawImageWithMarkup();
         }
@@ -39,9 +43,7 @@ namespace WPFhospitalXray
                     dc.DrawImage(bitmap, new Rect(0, 0, bitmap.PixelWidth, bitmap.PixelHeight));
 
                     // 3. Формуємо шлях до текстового файлу з розміткою (у карантині)
-                    string tempLabelsFolder = @"D:\HospitalServer\TempLabels";
-                    string txtFileName = Path.GetFileNameWithoutExtension(_imagePath) + ".txt";
-                    string txtFilePath = Path.Combine(tempLabelsFolder, txtFileName);
+                    string txtFilePath = _labelPath;
 
                     // 4. Якщо файл існує - малюємо зелений контур
                     if (File.Exists(txtFilePath))

@@ -12,16 +12,20 @@ namespace WPFhospitalXray
     {
         private readonly IRetrainingRequestService _requestService;
         private readonly IDatasetService _datasetService;
+        private readonly IApplicationPathService _pathService;
 
-        public RetrainManagerWindow(IRetrainingRequestService requestService, IDatasetService datasetService)
+        public RetrainManagerWindow(
+            IRetrainingRequestService requestService,
+            IDatasetService datasetService,
+            IApplicationPathService pathService)
         {
             InitializeComponent();
+
             _requestService = requestService;
             _datasetService = datasetService;
+            _pathService = pathService;
 
-            // Запускаємо завантаження даних
             _ = LoadRequestsAsync();
-            
         }
 
         private async Task LoadRequestsAsync()
@@ -115,7 +119,10 @@ namespace WPFhospitalXray
                 }
 
                 // Відкриваємо наше нове вікно перегляду
-                MarkupPreviewWindow previewWindow = new MarkupPreviewWindow(selectedReq.ImagePath);
+                string labelFileName = System.IO.Path.GetFileNameWithoutExtension(selectedReq.ImagePath) + ".txt";
+                string labelPath = System.IO.Path.Combine(_pathService.TempLabelsFolder, labelFileName);
+
+                MarkupPreviewWindow previewWindow = new MarkupPreviewWindow(selectedReq.ImagePath, labelPath);
                 previewWindow.ShowDialog();
             }
         }

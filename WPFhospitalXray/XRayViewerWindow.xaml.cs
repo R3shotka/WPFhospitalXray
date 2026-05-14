@@ -143,9 +143,9 @@ namespace WPFhospitalXray
                     ExaminationId = _examinationId,
                     MedicalImageId = CurrentMedicalImageId,
                     UserId = _currentUserId,
-                    ModelName = "YOLOv8 fracture detector",
-                    ModelVersion = "best1",
-                    ModelPath = @"Models\best1.onnx",
+                    ModelName = _aiService.ModelName,
+                    ModelVersion = _aiService.ModelVersion,
+                    ModelPath = _aiService.ModelPath,
                     Detections = detections ?? new List<FractureDetectionDto>()
                 };
 
