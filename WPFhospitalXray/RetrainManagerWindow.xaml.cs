@@ -151,12 +151,39 @@ namespace WPFhospitalXray
 
                 await LoadRequestsAsync();
 
+                if (!result.IsSuccess)
+                {
+                    string warningMessage =
+                        "Датасет не сформовано.\n\n" +
+                        $"Схвалених запитів: {result.TotalRequests}\n" +
+                        $"Придатних запитів: {result.ValidItems}\n" +
+                        $"Пропущено: {result.SkippedItems}";
+
+                    if (result.Warnings.Any())
+                    {
+                        warningMessage += "\n\nПричини:\n" + string.Join("\n", result.Warnings);
+                    }
+
+                    MessageBox.Show(
+                        warningMessage,
+                        "Формування датасету",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+
+                    return;
+                }
+
                 string message =
                     $"Датасет сформовано.\n\n" +
                     $"Шлях: {result.DatasetPath}\n" +
-                    $"Схвалених запитів: {result.TotalRequests}\n" +
+                    $"Summary: {result.SummaryPath}\n\n" +
                     $"Експортовано: {result.ExportedItems}\n" +
-                    $"Пропущено: {result.SkippedItems}";
+                    $"Train: {result.TrainItems}\n" +
+                    $"Validation: {result.ValidationItems}\n\n" +
+                    $"FalsePositive: {result.FalsePositiveItems}\n" +
+                    $"FalseNegative: {result.FalseNegativeItems}\n" +
+                    $"CorrectedPositive: {result.CorrectedPositiveItems}\n" +
+                    $"Background ratio: {result.BackgroundRatio:P2}";
 
                 if (result.Warnings.Any())
                 {
