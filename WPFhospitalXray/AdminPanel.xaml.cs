@@ -36,21 +36,36 @@ namespace WPFhospitalXray
         private readonly IImageStorageService _imageStorageService;
         private readonly IApplicationPathService _pathService;
         private readonly IDatasetExportService _datasetExportService;
+        private readonly IRolePermissionService _rolePermissionService;
 
         private readonly string _currentUserId;
 
         private IEnumerable<PatientsListDto> _allPatients;
 
         // DI автоматично передасть сюди готовий IApplicationUserService при відкритті AdminPanel
-        public AdminPanel(IApplicationUserService userService, IPatientService patientService, string role, IMedicalCardService medicalCardService, IExaminationService examinationService, IMedicalImageService imageService, IConclusionService conclusionService, string currentUserId, IAIAnalyzerService aIAnalyzerService, IDatasetService datasetService, IRetrainingRequestService requestService, IAnalysisResultService analysisResultService, IImageStorageService imageStorageService, IApplicationPathService pathService, IDatasetExportService datasetExportService)
+        public AdminPanel(
+            IApplicationUserService userService,
+            IPatientService patientService,
+            string role,
+            IMedicalCardService medicalCardService,
+            IExaminationService examinationService,
+            IMedicalImageService imageService,
+            IConclusionService conclusionService,
+            string currentUserId,
+            IAIAnalyzerService aIAnalyzerService,
+            IDatasetService datasetService,
+            IRetrainingRequestService requestService,
+            IAnalysisResultService analysisResultService,
+            IImageStorageService imageStorageService,
+            IApplicationPathService pathService,
+            IDatasetExportService datasetExportService,
+            IRolePermissionService rolePermissionService)
         {
             InitializeComponent();
+
             _userService = userService;
             _patientService = patientService;
             _currentUserRole = role;
-
-            ApplyPermissions();
-            LoadPatientsAsync(); // Завантажуємо таблицю одразу при відкритті
             _medicalCardService = medicalCardService;
             _examinationService = examinationService;
             _imageService = imageService;
@@ -63,31 +78,48 @@ namespace WPFhospitalXray
             _imageStorageService = imageStorageService;
             _pathService = pathService;
             _datasetExportService = datasetExportService;
+            _rolePermissionService = rolePermissionService;
+
+            ApplyPermissions();
+
+            _ = LoadPatientsAsync();
         }
         private void ApplyPermissions()
         {
-            if (_currentUserRole == "Nurse" || _currentUserRole == "Медсестра")
+            if (!_rolePermissionService.CanManagePatients(_currentUserRole))
             {
-                AdminStaffPanel.Visibility = Visibility.Collapsed; // Ховаємо ШІ та Персонал
+                PatientPanel.Visibility = Visibility.Collapsed;
+            }
+
+            if (!_rolePermissionService.CanManageStaff(_currentUserRole) &&
+                !_rolePermissionService.CanManageRetraining(_currentUserRole))
+            {
+                AdminStaffPanel.Visibility = Visibility.Collapsed;
+            }
+
+            if (_rolePermissionService.CanManagePatients(_currentUserRole))
+            {
                 this.Title = "Медсестра: Робота з пацієнтами";
             }
-            else if (_currentUserRole == "Radiologist" || _currentUserRole == "Рентгенолог" ||
-                     _currentUserRole == "Surgeon" || _currentUserRole == "Хірург")
+            else if (_rolePermissionService.CanManageStaff(_currentUserRole))
             {
-                PatientPanel.Visibility = Visibility.Collapsed;    // Ховаємо кнопки пацієнтів
-                AdminStaffPanel.Visibility = Visibility.Collapsed; // Ховаємо ШІ та Персонал
-                this.Title = $"{_currentUserRole}: Список пацієнтів";
-            }
-            else if (_currentUserRole == "Admin" || _currentUserRole == "Адміністратор")
-            {
-                PatientPanel.Visibility = Visibility.Collapsed;    // Ховаємо кнопки пацієнтів
                 this.Title = "Адміністратор: Керування клінікою та ШІ";
+            }
+            else
+            {
+                this.Title = $"{_currentUserRole}: Список пацієнтів";
             }
         }
 
         // Обробник натискання для кнопки ШІ
         private void OpenRetrainManager_Click(object sender, RoutedEventArgs e)
         {
+            if (!_rolePermissionService.CanManageRetraining(_currentUserRole))
+            {
+                MessageBox.Show("У вас немає прав для керування донавчанням ШІ.", "Доступ заборонено",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
             // Відкриваємо вікно керування датасетом
             var retrainWindow = new RetrainManagerWindow(
                 _requestService,
@@ -270,7 +302,8 @@ namespace WPFhospitalXray
                     _datasetService,
                     _requestService,
                     _analysisResultService,
-                    _imageStorageService); // <— Якщо цього сервісу тут ще немає, додай його в конструктор AdminPanel!
+                    _imageStorageService,
+                    _rolePermissionService); // <— Якщо цього сервісу тут ще немає, додай його в конструктор AdminPanel!
 
                 // 4. Передаємо дані (ID та Роль)
                 medicalCardWindow.InitializeData(selectedPatient.Id, _currentUserRole, _currentUserId);

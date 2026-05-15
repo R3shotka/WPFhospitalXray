@@ -19,6 +19,7 @@ namespace WPFhospitalXray
         private readonly IRetrainingRequestService _requestService;
         private readonly IAnalysisResultService _analysisResultService;
         private readonly IImageStorageService _imageStorageService;
+        private readonly IRolePermissionService _rolePermissionService;
 
         private string _currentRole;
         private string _patientId;
@@ -37,7 +38,8 @@ namespace WPFhospitalXray
             IDatasetService datasetService,
             IRetrainingRequestService requestService,
             IAnalysisResultService analysisResultService,
-            IImageStorageService imageStorageService)
+            IImageStorageService imageStorageService,
+            IRolePermissionService rolePermissionService)
         {
             InitializeComponent();
             _patientService = patientService;
@@ -50,6 +52,7 @@ namespace WPFhospitalXray
             _requestService = requestService;
             _analysisResultService = analysisResultService;
             _imageStorageService = imageStorageService;
+            _rolePermissionService = rolePermissionService;
         }
         // ЗРОБИЛИ МЕТОД ASYNC, щоб він міг чекати на дані з бази
         public async void InitializeData(string patientId, string userRole, string userId)
@@ -128,7 +131,6 @@ namespace WPFhospitalXray
 
         private void ConfigureUIForRole()
         {
-            // Базовий стан: усе приховано, а потім явно відкриваємо потрібне для ролі.
             btn_StartExamination.Visibility = Visibility.Collapsed;
             btn_AddImage.Visibility = Visibility.Collapsed;
             btn_DeleteExam.Visibility = Visibility.Collapsed;
@@ -145,33 +147,37 @@ namespace WPFhospitalXray
             tb_SurgeonConclusion.Background = new System.Windows.Media.SolidColorBrush(
                 System.Windows.Media.Color.FromRgb(232, 238, 245));
 
-            if (_currentRole == "Nurse" || _currentRole == "Медсестра")
+            if (_rolePermissionService.CanCreateExamination(_currentRole))
             {
-                // Медсестра створює обстеження і може переглядати список/знімок.
                 btn_StartExamination.Visibility = Visibility.Visible;
-
-                // Якщо хочеш залишити медсестрі видалення пацієнта з медкарти, залиш цей рядок.
-                // Якщо ні - просто прибери або закоментуй його.
-                btn_DeletePatient.Visibility = Visibility.Visible;
-
-                sp_ConclusionBlock.Visibility = Visibility.Collapsed;
             }
-            else if (_currentRole == "Radiologist" || _currentRole == "Рентгенолог")
-            {
-                // Рентгенолог працює зі знімком і пише свій висновок.
-                btn_AddImage.Visibility = Visibility.Visible;
-                btn_DeleteExam.Visibility = Visibility.Visible;
-                sp_ConclusionBlock.Visibility = Visibility.Visible;
 
+            if (_rolePermissionService.CanUploadImages(_currentRole))
+            {
+                btn_AddImage.Visibility = Visibility.Visible;
+            }
+
+            if (_rolePermissionService.CanDeleteExamination(_currentRole))
+            {
+                btn_DeleteExam.Visibility = Visibility.Visible;
+            }
+
+            if (_rolePermissionService.CanDeletePatient(_currentRole))
+            {
+                btn_DeletePatient.Visibility = Visibility.Visible;
+            }
+
+            if (_rolePermissionService.CanWriteRadiologistConclusion(_currentRole))
+            {
+                sp_ConclusionBlock.Visibility = Visibility.Visible;
                 tb_RadiologistConclusion.IsReadOnly = false;
                 tb_RadiologistConclusion.Focusable = true;
                 tb_RadiologistConclusion.Background = System.Windows.Media.Brushes.White;
             }
-            else if (_currentRole == "Surgeon" || _currentRole == "Хірург")
-            {
-                // Хірург переглядає дані і пише план лікування, але не створює/видаляє обстеження.
-                sp_ConclusionBlock.Visibility = Visibility.Visible;
 
+            if (_rolePermissionService.CanWriteSurgeonConclusion(_currentRole))
+            {
+                sp_ConclusionBlock.Visibility = Visibility.Visible;
                 tb_SurgeonConclusion.IsReadOnly = false;
                 tb_SurgeonConclusion.Focusable = true;
                 tb_SurgeonConclusion.Background = System.Windows.Media.Brushes.White;
@@ -181,6 +187,12 @@ namespace WPFhospitalXray
 
         private async void btn_DeletePatient_Click(object sender, RoutedEventArgs e)
         {
+            if (!_rolePermissionService.CanDeletePatient(_currentRole))
+            {
+                MessageBox.Show("У вас немає прав для видалення пацієнта.", "Доступ заборонено",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
             // 1. Запитуємо підтвердження у користувача (Захист від випадкового кліку)
             var result = MessageBox.Show(
                 "Ви впевнені, що хочете видалити цього пацієнта та всю його медичну історію?\nЦю дію неможливо скасувати!",
@@ -209,6 +221,12 @@ namespace WPFhospitalXray
         }
         private async void btn_StartExamination_Click(object sender, RoutedEventArgs e)
         {
+            if (!_rolePermissionService.CanCreateExamination(_currentRole))
+            {
+                MessageBox.Show("У вас немає прав для створення обстеження.", "Доступ заборонено",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
             try
             {
                 if (_medicalCardId == 0)
@@ -230,6 +248,12 @@ namespace WPFhospitalXray
         }
         private async void btn_AddImage_Click(object sender, RoutedEventArgs e)
         {
+            if (!_rolePermissionService.CanUploadImages(_currentRole))
+            {
+                MessageBox.Show("У вас немає прав для завантаження знімків.", "Доступ заборонено",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
             // 1. Перевіряємо, чи вибрав лікар обстеження в таблиці
             if (dg_Examinations.SelectedItem is not BLL.DTOs.Examinations.ExaminationListDto selectedExam)
             {
@@ -280,6 +304,12 @@ namespace WPFhospitalXray
         }
         private async void btn_DeleteExam_Click(object sender, RoutedEventArgs e)
         {
+            if (!_rolePermissionService.CanDeleteExamination(_currentRole))
+            {
+                MessageBox.Show("У вас немає прав для видалення обстеження.", "Доступ заборонено",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
             // 1. Перевіряємо, чи вибрано обстеження
             if (dg_Examinations.SelectedItem is not BLL.DTOs.Examinations.ExaminationListDto selectedExam)
             {
@@ -382,6 +412,12 @@ namespace WPFhospitalXray
         }
         private void btn_ViewImage_Click(object sender, RoutedEventArgs e)
         {
+            if (!_rolePermissionService.CanViewImages(_currentRole))
+            {
+                MessageBox.Show("У вас немає прав для перегляду знімків.", "Доступ заборонено",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
             var button = sender as System.Windows.Controls.Button;
 
             if (button?.DataContext is BLL.DTOs.Examinations.ExaminationListDto selectedExam)
@@ -398,14 +434,15 @@ namespace WPFhospitalXray
                 try
                 {
                     XRayViewerWindow viewerWindow = new XRayViewerWindow(
-                        selectedExam.Id,
-                        _currentUserId,
-                        _currentRole,
-                        _imageService,
-                        _aiService,
-                        _datasetService,
-                        _requestService,
-                        _analysisResultService);
+                         selectedExam.Id,
+                         _currentUserId,
+                         _currentRole,
+                         _imageService,
+                         _aiService,
+                         _datasetService,
+                         _requestService,
+                         _analysisResultService,
+                         _rolePermissionService);
 
                     viewerWindow.ShowDialog();
                 }
@@ -429,17 +466,18 @@ namespace WPFhospitalXray
                 string textToSave = "";
 
                 // Визначаємо, з якого поля брати текст, спираючись на роль користувача
-                if (_currentRole == "Surgeon" || _currentRole == "Хірург")
+                if (_rolePermissionService.CanWriteSurgeonConclusion(_currentRole))
                 {
                     textToSave = tb_SurgeonConclusion.Text;
                 }
-                else if (_currentRole == "Radiologist" || _currentRole == "Рентгенолог")
+                else if (_rolePermissionService.CanWriteRadiologistConclusion(_currentRole))
                 {
                     textToSave = tb_RadiologistConclusion.Text;
                 }
                 else
                 {
-                    MessageBox.Show("У вас немає прав для збереження медичних висновків.", "Помилка доступу", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("У вас немає прав для збереження медичних висновків.", "Доступ заборонено",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 

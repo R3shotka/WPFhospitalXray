@@ -59,7 +59,7 @@ namespace WPFhospitalXray
 
                     // ВАЖЛИВО: Пароль ніколи не виводимо на екран! 
                     // Залишаємо поле порожнім.
-                    Pass_textbox.Text = "";
+                    Pass_textbox.Password = "";
 
                     // --- Вибираємо правильну Посаду ---
                     foreach (ComboBoxItem item in Job_combobox.Items)
@@ -169,7 +169,7 @@ namespace WPFhospitalXray
                     // Якщо поле пароля порожнє, ми так і передаємо "". 
                     // Твій BLL (ApplicationUserService) має бути налаштований так, 
                     // щоб ігнорувати зміну пароля, якщо прийшов порожній рядок.
-                    Password = Pass_textbox.Text,
+                    Password = Pass_textbox.Password,
 
                     Position = GetPositionFromDisplayName(selectedJob), // Перекладаємо "Адміністратор" -> "Admin"
                     Sex = GetSexFromDisplayName(selectedSex)            // Перекладаємо "Чоловіча" -> "Ч"

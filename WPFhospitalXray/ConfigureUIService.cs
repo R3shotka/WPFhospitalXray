@@ -32,7 +32,7 @@ namespace WPFhospitalXray
             services.AddScoped<IImageStorageService, ImageStorageService>();
 
             // --- ДОДАЄМО НАШІ НОВІ СЕРВІСИ ---
-
+            services.AddScoped<IRolePermissionService, RolePermissionService>();
             // 1. Реєструємо репозиторій з бази даних (DAL)
             services.AddScoped<IAplicationUser, ApplicationUserRepository>();
 

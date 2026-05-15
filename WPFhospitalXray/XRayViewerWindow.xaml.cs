@@ -29,6 +29,7 @@ namespace WPFhospitalXray
         private readonly string _currentUserId;
 
         private readonly IMedicalImageService _imageService;
+        private readonly IRolePermissionService _rolePermissionService;
 
         private List<MedicalImageDto> _images = new List<MedicalImageDto>();
         private int _currentImageIndex = 0;
@@ -53,7 +54,8 @@ namespace WPFhospitalXray
     IAIAnalyzerService aiService,
     IDatasetService datasetService,
     IRetrainingRequestService requestService,
-    IAnalysisResultService analysisResultService)
+    IAnalysisResultService analysisResultService,
+    IRolePermissionService rolePermissionService)
         {
             InitializeComponent();
 
@@ -66,6 +68,7 @@ namespace WPFhospitalXray
             _datasetService = datasetService;
             _requestService = requestService;
             _analysisResultService = analysisResultService;
+            _rolePermissionService = rolePermissionService;
 
             ConfigureUiForRole();
 
@@ -74,7 +77,7 @@ namespace WPFhospitalXray
 
         private bool CanWorkWithAi()
         {
-            return _currentRole == "Radiologist" || _currentRole == "Рентгенолог";
+            return _rolePermissionService.CanWorkWithAi(_currentRole);
         }
 
         private void ConfigureUiForRole()

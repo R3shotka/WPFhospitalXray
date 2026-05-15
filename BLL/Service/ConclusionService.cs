@@ -13,10 +13,14 @@ namespace BLL.Service
     public class ConclusionService : IConclusionService
     {
         private readonly IConclusion _conclusionRepository;
+        private readonly IRolePermissionService _rolePermissionService;
 
-        public ConclusionService(IConclusion conclusionRepository)
+        public ConclusionService(
+            IConclusion conclusionRepository,
+            IRolePermissionService rolePermissionService)
         {
             _conclusionRepository = conclusionRepository;
+            _rolePermissionService = rolePermissionService;
         }
         public async Task CreateConclusionAsync(CreateConclusionDto dto)
         {
@@ -62,9 +66,20 @@ namespace BLL.Service
         public async Task SaveOrUpdateConclusionAsync(int examinationId, string currentRole, string text, string doctorId)
         {
             // 1. Визначаємо правильний тип (перетворюємо українську/англійську роль на Enum)
-            ConclusionType targetType = (currentRole == "Radiologist" || currentRole == "Рентгенолог")
-                                        ? ConclusionType.Radiologist
-                                        : ConclusionType.Surgeon;
+            ConclusionType targetType;
+
+            if (_rolePermissionService.CanWriteRadiologistConclusion(currentRole))
+            {
+                targetType = ConclusionType.Radiologist;
+            }
+            else if (_rolePermissionService.CanWriteSurgeonConclusion(currentRole))
+            {
+                targetType = ConclusionType.Surgeon;
+            }
+            else
+            {
+                throw new UnauthorizedAccessException("Поточна роль не має права зберігати лікарський висновок.");
+            }
 
             // 2. Шукаємо, чи є вже такий висновок у цього обстеження
             var allConclusions = await _conclusionRepository.GetByExaminationIdAsync(examinationId);

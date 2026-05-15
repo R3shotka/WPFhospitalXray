@@ -57,7 +57,7 @@ namespace WPFhospitalXray
                     Position = GetPositionFromDisplayName(selectedJob), // Перекладаємо для БД
                     Sex = GetSexFromDisplayName(selectedSex),           // Перекладаємо для БД
                     Login = Login_textbox.Text,
-                    Password = Pass_textbox.Text
+                    Password = Pass_textbox.Password
                 };
 
                 var validationContext = new ValidationContext(createStaffDto);
