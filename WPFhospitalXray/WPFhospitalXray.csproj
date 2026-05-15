@@ -13,9 +13,7 @@
     <None Remove="Models\best1.onnx" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="..\BLL\Service\ApplicationPathService.cs" Link="ApplicationPathService.cs" />
-  </ItemGroup>
+ 
 
   <ItemGroup>
     <Content Include="Models\best.onnx">

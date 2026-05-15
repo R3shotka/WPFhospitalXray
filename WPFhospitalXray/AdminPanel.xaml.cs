@@ -282,7 +282,7 @@ namespace WPFhospitalXray
         private async void DBGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             // 1. Перевірка ролі (щоб Адмін не міг відкрити)
-            if (_currentUserRole == "Admin" || _currentUserRole == "Адміністратор")
+            if (!_rolePermissionService.CanOpenMedicalCard(_currentUserRole))
             {
                 return;
             }
