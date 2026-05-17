@@ -11,14 +11,22 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace WPFhospitalXray
 {
     public static class ConfigureUIService
     {
-        public static IServiceCollection AddUiServices(this IServiceCollection services)
+        public static IServiceCollection AddUiServices(this IServiceCollection services, IConfiguration configuration)
         {
-            services.AddDbContext<ApplicationDBContext>();
+            string connectionString = configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
+
+            services.AddDbContext<ApplicationDBContext>(options =>
+            {
+                options.UseSqlServer(connectionString);
+            });
 
             services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDBContext>()

@@ -33,13 +33,7 @@ namespace DAL.DBContext
         public DbSet<AnalysisResult> AnalysisResults { get; set; }
         public DbSet<DetectionBox> DetectionBoxes { get; set; }
 
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            if (!optionsBuilder.IsConfigured)
-            {
-                optionsBuilder.UseSqlServer(@"Data Source=DESKTOP-EG334R7\SQLEXPRESS; Initial Catalog=HospitalXrayDb; Integrated Security=true; TrustServerCertificate=True");
-            }
-        }
+       
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

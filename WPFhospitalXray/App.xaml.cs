@@ -21,7 +21,7 @@ namespace WPFhospitalXray
             _host = Host.CreateDefaultBuilder()
                 .ConfigureServices((ctx, services) =>
                 {
-                    services.AddUiServices(); // <- твій ConfigureUIService
+                    services.AddUiServices(ctx.Configuration);
                 })
                 .Build();
         }
