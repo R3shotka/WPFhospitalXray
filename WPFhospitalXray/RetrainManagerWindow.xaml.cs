@@ -35,8 +35,13 @@ namespace WPFhospitalXray
             _modelTrainingService = modelTrainingService;
             _modelVersionService = modelVersionService;
 
-            _ = LoadRequestsAsync();
-            _ = LoadModelVersionsAsync();
+            Loaded += RetrainManagerWindow_Loaded;
+        }
+
+        private async void RetrainManagerWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            await LoadRequestsAsync();
+            await LoadModelVersionsAsync();
         }
 
         private async Task LoadRequestsAsync()
