@@ -126,35 +126,60 @@ def validate_label(label_path: Path) -> List[str]:
 
         parts = stripped.split()
 
-        if len(parts) != 5:
-            errors.append(f"line {line_number}: expected 5 values, got {len(parts)}")
+        if len(parts) != 5 and (len(parts) < 7 or (len(parts) - 1) % 2 != 0):
+            errors.append(
+                f"line {line_number}: expected bbox format with 5 values "
+                f"or polygon format with class_id and coordinate pairs, got {len(parts)}"
+            )
             continue
 
         if not all(is_number(part) for part in parts):
             errors.append(f"line {line_number}: non-numeric value found")
             continue
 
-        class_id, x_center, y_center, width, height = parts
+        class_id = parts[0]
 
         if class_id != "0":
             errors.append(f"line {line_number}: class_id must be 0")
 
-        x_center = float(x_center)
-        y_center = float(y_center)
-        width = float(width)
-        height = float(height)
+        if len(parts) == 5:
+            x_center = float(parts[1])
+            y_center = float(parts[2])
+            width = float(parts[3])
+            height = float(parts[4])
 
-        if not 0 <= x_center <= 1:
-            errors.append(f"line {line_number}: x_center is outside 0..1")
+            if not 0 <= x_center <= 1:
+                errors.append(f"line {line_number}: x_center is outside 0..1")
 
-        if not 0 <= y_center <= 1:
-            errors.append(f"line {line_number}: y_center is outside 0..1")
+            if not 0 <= y_center <= 1:
+                errors.append(f"line {line_number}: y_center is outside 0..1")
 
-        if not 0 < width <= 1:
-            errors.append(f"line {line_number}: width is outside 0..1")
+            if not 0 < width <= 1:
+                errors.append(f"line {line_number}: width is outside 0..1")
 
-        if not 0 < height <= 1:
-            errors.append(f"line {line_number}: height is outside 0..1")
+            if not 0 < height <= 1:
+                errors.append(f"line {line_number}: height is outside 0..1")
+        else:
+            coordinates = [float(value) for value in parts[1:]]
+            xs = coordinates[0::2]
+            ys = coordinates[1::2]
+
+            for point_index, x_value in enumerate(xs, start=1):
+                if not 0 <= x_value <= 1:
+                    errors.append(f"line {line_number}: polygon x{point_index} is outside 0..1")
+
+            for point_index, y_value in enumerate(ys, start=1):
+                if not 0 <= y_value <= 1:
+                    errors.append(f"line {line_number}: polygon y{point_index} is outside 0..1")
+
+            width = max(xs) - min(xs)
+            height = max(ys) - min(ys)
+
+            if width <= 0:
+                errors.append(f"line {line_number}: polygon width must be greater than 0")
+
+            if height <= 0:
+                errors.append(f"line {line_number}: polygon height must be greater than 0")
 
     return errors
 
@@ -230,13 +255,29 @@ def normalize_and_copy_label(src_label: Path, dst_label: Path):
 
             parts = stripped.split()
 
-            if len(parts) != 5:
+            if len(parts) != 5 and (len(parts) < 7 or (len(parts) - 1) % 2 != 0):
                 continue
 
             if not all(is_number(part) for part in parts):
                 continue
 
-            _, x_center, y_center, width, height = parts
+            if len(parts) == 5:
+                _, x_center, y_center, width, height = parts
+            else:
+                coordinates = [float(value) for value in parts[1:]]
+                xs = coordinates[0::2]
+                ys = coordinates[1::2]
+
+                min_x = min(xs)
+                max_x = max(xs)
+                min_y = min(ys)
+                max_y = max(ys)
+
+                x_center = (min_x + max_x) / 2
+                y_center = (min_y + max_y) / 2
+                width = max_x - min_x
+                height = max_y - min_y
+
             lines_out.append(
                 f"0 {float(x_center):.6f} {float(y_center):.6f} "
                 f"{float(width):.6f} {float(height):.6f}"
