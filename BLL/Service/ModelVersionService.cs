@@ -28,6 +28,7 @@ namespace BLL.Service
 
             if (activeModel != null)
             {
+                await EnsurePtPathAsync(activeModel);
                 return MapToDto(activeModel);
             }
 
@@ -43,6 +44,7 @@ namespace BLL.Service
                 await _repository.SetActiveAsync(existingModel.Id);
                 existingModel = await _repository.GetByIdAsync(existingModel.Id);
 
+                await EnsurePtPathAsync(existingModel!);
                 return MapToDto(existingModel!);
             }
 
@@ -114,6 +116,25 @@ namespace BLL.Service
             string ptPath = _pathService.GetModelPath(ptFileName);
 
             return File.Exists(ptPath) ? ptPath : null;
+        }
+
+        private async Task EnsurePtPathAsync(ModelVersion model)
+        {
+            if (!string.IsNullOrWhiteSpace(model.PtPath) && File.Exists(model.PtPath))
+            {
+                return;
+            }
+
+            string inferredPtPath = Path.ChangeExtension(model.OnnxPath, ".pt");
+
+            if (!File.Exists(inferredPtPath))
+            {
+                return;
+            }
+
+            model.PtPath = inferredPtPath;
+
+            await _repository.UpdateAsync(model);
         }
 
         private static ModelVersionDto MapToDto(ModelVersion model)
