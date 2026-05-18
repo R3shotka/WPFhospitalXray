@@ -107,6 +107,25 @@ namespace BLL.Service
 
         public async Task ActivateAsync(int modelVersionId)
         {
+            var model = await _repository.GetByIdAsync(modelVersionId)
+                ?? throw new InvalidOperationException("Версію моделі не знайдено.");
+
+            if (model.IsActive && model.Status == ModelVersionStatus.Active)
+            {
+                return;
+            }
+
+            if (model.Status != ModelVersionStatus.Candidate &&
+                model.Status != ModelVersionStatus.Archived)
+            {
+                throw new InvalidOperationException("Активувати можна тільки модель зі статусом Candidate або Archived.");
+            }
+
+            if (string.IsNullOrWhiteSpace(model.OnnxPath) || !File.Exists(model.OnnxPath))
+            {
+                throw new FileNotFoundException("ONNX-файл моделі-кандидата не знайдено.", model.OnnxPath);
+            }
+
             await _repository.SetActiveAsync(modelVersionId);
         }
 

@@ -1,4 +1,5 @@
 ﻿using BLL.DTOs.RetrainingRequests;   // Додали using для наших DTO!
+using BLL.DTOs.ModelVersions;
 using BLL.Interface;
 using DAL.Entity; // Для доступу до статусу (RetrainingRequestStatus)
 using System;
@@ -15,13 +16,15 @@ namespace WPFhospitalXray
         private readonly IApplicationPathService _pathService;
         private readonly IDatasetExportService _datasetExportService;
         private readonly IModelTrainingService _modelTrainingService;
+        private readonly IModelVersionService _modelVersionService;
 
         public RetrainManagerWindow(
             IRetrainingRequestService requestService,
             IDatasetService datasetService,
             IApplicationPathService pathService,
             IDatasetExportService datasetExportService,
-            IModelTrainingService modelTrainingService)
+            IModelTrainingService modelTrainingService,
+            IModelVersionService modelVersionService)
         {
             InitializeComponent();
 
@@ -30,8 +33,10 @@ namespace WPFhospitalXray
             _pathService = pathService;
             _datasetExportService = datasetExportService;
             _modelTrainingService = modelTrainingService;
+            _modelVersionService = modelVersionService;
 
             _ = LoadRequestsAsync();
+            _ = LoadModelVersionsAsync();
         }
 
         private async Task LoadRequestsAsync()
@@ -52,6 +57,21 @@ namespace WPFhospitalXray
             catch (Exception ex)
             {
                 MessageBox.Show($"Помилка завантаження запитів:\n{ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task LoadModelVersionsAsync()
+        {
+            try
+            {
+                var models = await _modelVersionService.GetAllAsync();
+
+                dg_ModelVersions.ItemsSource = models;
+                UpdateActivateButtonState();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка завантаження версій моделей:\n{ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -163,6 +183,11 @@ namespace WPFhospitalXray
                     message += $"\nID моделі-кандидата: {result.ModelVersionId}";
                 }
 
+                if (result.IsSuccess)
+                {
+                    await LoadModelVersionsAsync();
+                }
+
                 MessageBox.Show(
                     message,
                     result.IsSuccess ? "Донавчання завершено" : "Донавчання не запущено",
@@ -182,6 +207,83 @@ namespace WPFhospitalXray
                 btn_StartRetrain.IsEnabled = true;
                 btn_StartRetrain.Content = "🚀 Запустити донавчання ШІ";
             }
+        }
+
+        private async void btn_RefreshModels_Click(object sender, RoutedEventArgs e)
+        {
+            await LoadModelVersionsAsync();
+        }
+
+        private async void btn_ActivateModel_Click(object sender, RoutedEventArgs e)
+        {
+            if (dg_ModelVersions.SelectedItem is not ModelVersionDto selectedModel)
+            {
+                MessageBox.Show("Будь ласка, виберіть модель із таблиці.", "Увага", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!CanActivateModel(selectedModel))
+            {
+                MessageBox.Show("Активувати можна тільки неактивну модель зі статусом Candidate або Archived.", "Увага", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var confirmation = MessageBox.Show(
+                $"Активувати вибрану модель?\n\nID: {selectedModel.Id}\nВерсія: {selectedModel.Version}\n\nПоточна активна модель стане архівною.",
+                "Активація моделі",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (confirmation != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            try
+            {
+                btn_ActivateModel.IsEnabled = false;
+
+                await _modelVersionService.ActivateAsync(selectedModel.Id);
+                await LoadModelVersionsAsync();
+
+                MessageBox.Show(
+                    "Модель активовано. Нові аналізи будуть використовувати цю версію.",
+                    "Активація моделі",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка активації моделі:\n{ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                UpdateActivateButtonState();
+            }
+        }
+
+        private void dg_ModelVersions_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            UpdateActivateButtonState();
+        }
+
+        private void UpdateActivateButtonState()
+        {
+            if (btn_ActivateModel == null || dg_ModelVersions == null)
+            {
+                return;
+            }
+
+            btn_ActivateModel.IsEnabled =
+                dg_ModelVersions.SelectedItem is ModelVersionDto selectedModel &&
+                CanActivateModel(selectedModel);
+        }
+
+        private static bool CanActivateModel(ModelVersionDto model)
+        {
+            return !model.IsActive &&
+                   (model.Status == ModelVersionStatus.Candidate ||
+                    model.Status == ModelVersionStatus.Archived);
         }
 
         private async void btn_ExportDataset_Click(object sender, RoutedEventArgs e)

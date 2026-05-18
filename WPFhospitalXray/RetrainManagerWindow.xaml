@@ -55,41 +55,116 @@
             </Grid>
         </Border>
 
-        <DataGrid x:Name="dg_Requests" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True"
-                  Background="White" Foreground="Black" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#D0D0D0"
-                  RowBackground="White" AlternatingRowBackground="#F9FBFD" BorderBrush="#D0D0D0"
-                  SelectionMode="Single">
-            <DataGrid.ColumnHeaderStyle>
-                <Style TargetType="DataGridColumnHeader">
-                    <Setter Property="Background" Value="#526681"/>
-                    <Setter Property="Foreground" Value="White"/>
-                    <Setter Property="Padding" Value="5"/>
-                </Style>
-            </DataGrid.ColumnHeaderStyle>
-            <DataGrid.Columns>
-                <!-- Width="Auto" розтягне колонку під розмір числа -->
-                <DataGridTextColumn Header="№ Запиту" Binding="{Binding Id}" Width="Auto" />
+        <TabControl Grid.Row="1">
+            <TabItem Header="Запити на донавчання">
+                <DataGrid x:Name="dg_Requests" AutoGenerateColumns="False" IsReadOnly="True"
+                          Background="White" Foreground="Black" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#D0D0D0"
+                          RowBackground="White" AlternatingRowBackground="#F9FBFD" BorderBrush="#D0D0D0"
+                          SelectionMode="Single">
+                    <DataGrid.ColumnHeaderStyle>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="Background" Value="#526681"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="Padding" Value="5"/>
+                        </Style>
+                    </DataGrid.ColumnHeaderStyle>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="№ Запиту" Binding="{Binding Id}" Width="Auto" />
+                        <DataGridTextColumn Header="Дата" Binding="{Binding RequestedAt, StringFormat=\{0:dd.MM.yyyy HH:mm\}}" Width="Auto" />
+                        <DataGridTextColumn Header="Лікар" Binding="{Binding DoctorName}" Width="*" />
+                        <DataGridTextColumn Header="Тип випадку" Binding="{Binding RequestTypeDisplayName}" Width="*" />
+                        <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="Auto" />
+                        <DataGridTemplateColumn Header="Дія" Width="Auto">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="👁 Перевірити розмітку" Click="btn_PreviewMarkup_Click" Margin="5"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
 
-                <!-- StringFormat робить дату коротшою (без зайвих секунд), а Width="Auto" розтягує колонку, щоб дата не обрізалась -->
-                <DataGridTextColumn Header="Дата" Binding="{Binding RequestedAt, StringFormat=\{0:dd.MM.yyyy HH:mm\}}" Width="Auto" />
+            <TabItem Header="Версії моделей">
+                <Grid Background="White" Margin="0,8,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-                <!-- ВАЖЛИВО: Перевір, щоб тут було написано саме DoctorName! 
-         Width="*" розтягне колонку лікаря на весь вільний простір, що залишився на екрані -->
-                <DataGridTextColumn Header="Лікар" Binding="{Binding DoctorName}" Width="*" />
+                    <Border Grid.Row="0" Background="#F9FBFD" BorderBrush="#D0D0D0" BorderThickness="0,0,0,1" Padding="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
 
-                <DataGridTextColumn Header="Тип випадку" Binding="{Binding RequestTypeDisplayName}" Width="*" />
+                            <TextBlock Text="Активна модель використовується для аналізу знімків. Нову або архівну версію можна активувати після перевірки."
+                                       Foreground="#334155"
+                                       VerticalAlignment="Center"
+                                       TextWrapping="Wrap"/>
 
-                <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="Auto" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Button x:Name="btn_RefreshModels"
+                                        Content="Оновити"
+                                        Height="35"
+                                        Padding="15,0"
+                                        Margin="0,0,10,0"
+                                        Background="#526681"
+                                        Foreground="White"
+                                        BorderThickness="0"
+                                        Cursor="Hand"
+                                        Click="btn_RefreshModels_Click"/>
 
-                <!-- Твоя колонка з кнопкою "Перевірити розмітку" -->
-                <DataGridTemplateColumn Header="Дія" Width="Auto">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Button Content="👁 Перевірити розмітку" Click="btn_PreviewMarkup_Click" Margin="5"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-            </DataGrid.Columns>
-        </DataGrid>
+                                <Button x:Name="btn_ActivateModel"
+                                        Content="Активувати модель"
+                                        Height="35"
+                                        Padding="15,0"
+                                        Background="#4CAF50"
+                                        Foreground="White"
+                                        BorderThickness="0"
+                                        Cursor="Hand"
+                                        Click="btn_ActivateModel_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <DataGrid x:Name="dg_ModelVersions"
+                              Grid.Row="1"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              Background="White"
+                              Foreground="Black"
+                              GridLinesVisibility="Horizontal"
+                              HorizontalGridLinesBrush="#D0D0D0"
+                              RowBackground="White"
+                              AlternatingRowBackground="#F9FBFD"
+                              BorderBrush="#D0D0D0"
+                              SelectionMode="Single"
+                              SelectionChanged="dg_ModelVersions_SelectionChanged">
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="Background" Value="#526681"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="Padding" Value="5"/>
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="Auto"/>
+                            <DataGridTextColumn Header="Версія" Binding="{Binding Version}" Width="1.6*"/>
+                            <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="Auto"/>
+                            <DataGridCheckBoxColumn Header="Активна" Binding="{Binding IsActive}" Width="Auto"/>
+                            <DataGridTextColumn Header="Створено" Binding="{Binding CreatedAt, StringFormat=\{0:dd.MM.yyyy HH:mm\}}" Width="Auto"/>
+                            <DataGridTextColumn Header="Активовано" Binding="{Binding ActivatedAt, StringFormat=\{0:dd.MM.yyyy HH:mm\}}" Width="Auto"/>
+                            <DataGridTextColumn Header="Precision" Binding="{Binding Precision, StringFormat=\{0:0.0000\}}" Width="Auto"/>
+                            <DataGridTextColumn Header="Recall" Binding="{Binding Recall, StringFormat=\{0:0.0000\}}" Width="Auto"/>
+                            <DataGridTextColumn Header="mAP50" Binding="{Binding Map50, StringFormat=\{0:0.0000\}}" Width="Auto"/>
+                            <DataGridTextColumn Header="ONNX" Binding="{Binding OnnxPath}" Width="2.4*"/>
+                            <DataGridTextColumn Header="PT" Binding="{Binding PtPath}" Width="2.4*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+        </TabControl>
     </Grid>
 </Window>
