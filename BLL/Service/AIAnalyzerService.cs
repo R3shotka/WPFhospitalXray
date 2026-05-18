@@ -1,7 +1,6 @@
 ﻿using BLL.DTOs.FractureDetections;
 using BLL.Interface;
 using Compunet.YoloV8;
-using Microsoft.Extensions.Configuration;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using System;
@@ -18,41 +17,38 @@ namespace BLL.Service
         private const int ModelInputSize = 768;
         private readonly string[] _classes = { "fracture" };
 
-        private readonly string _physicalModelPath;
+        private readonly IModelVersionService _modelVersionService;
 
-        public AIAnalyzerService(
-            IApplicationPathService pathService,
-            IConfiguration configuration)
+        public AIAnalyzerService(IModelVersionService modelVersionService)
         {
-            ModelName = configuration["AIModel:ModelName"] ?? "YOLOv8 fracture detector";
-            ModelVersion = configuration["AIModel:ModelVersion"] ?? "unknown";
-
-            string modelFileName = configuration["AIModel:ModelFileName"] ?? "best1.onnx";
-
-            _physicalModelPath = pathService.GetModelPath(modelFileName);
-
-            ModelPath = Path.Combine("Models", modelFileName);
+            _modelVersionService = modelVersionService;
         }
 
-        public string ModelName { get; }
+        public string ModelName { get; private set; } = "YOLOv8 fracture detector";
 
-        public string ModelVersion { get; }
+        public string ModelVersion { get; private set; } = "unknown";
 
-        public string ModelPath { get; }
+        public string ModelPath { get; private set; } = string.Empty;
 
         public async Task<List<FractureDetectionDto>> AnalyzeImageAsync(string imagePath)
         {
-            return await Task.Run(() => RunInference(imagePath));
+            var activeModel = await _modelVersionService.GetActiveOrCreateDefaultAsync();
+
+            ModelName = activeModel.ModelName;
+            ModelVersion = activeModel.Version;
+            ModelPath = activeModel.OnnxPath;
+
+            return await Task.Run(() => RunInference(imagePath, activeModel.OnnxPath));
         }
 
-        private List<FractureDetectionDto> RunInference(string imagePath)
+        private List<FractureDetectionDto> RunInference(string imagePath, string modelPath)
         {
-            if (!File.Exists(_physicalModelPath))
+            if (!File.Exists(modelPath))
             {
-                throw new FileNotFoundException("Файл AI-моделі не знайдено.", _physicalModelPath);
+                throw new FileNotFoundException("Файл AI-моделі не знайдено.", modelPath);
             }
 
-            using var session = new InferenceSession(_physicalModelPath);
+            using var session = new InferenceSession(modelPath);
 
             using var image = new Bitmap(imagePath);
             int originalWidth = image.Width;

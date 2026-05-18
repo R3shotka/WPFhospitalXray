@@ -37,6 +37,7 @@ namespace WPFhospitalXray
         private readonly IApplicationPathService _pathService;
         private readonly IDatasetExportService _datasetExportService;
         private readonly IRolePermissionService _rolePermissionService;
+        private readonly IModelTrainingService _modelTrainingService;
 
         private readonly string _currentUserId;
 
@@ -59,7 +60,8 @@ namespace WPFhospitalXray
             IImageStorageService imageStorageService,
             IApplicationPathService pathService,
             IDatasetExportService datasetExportService,
-            IRolePermissionService rolePermissionService)
+            IRolePermissionService rolePermissionService,
+            IModelTrainingService modelTrainingService)
         {
             InitializeComponent();
 
@@ -79,6 +81,7 @@ namespace WPFhospitalXray
             _pathService = pathService;
             _datasetExportService = datasetExportService;
             _rolePermissionService = rolePermissionService;
+            _modelTrainingService = modelTrainingService;
 
             ApplyPermissions();
 
@@ -125,7 +128,8 @@ namespace WPFhospitalXray
                 _requestService,
                 _datasetService,
                 _pathService,
-                _datasetExportService);
+                _datasetExportService,
+                _modelTrainingService);
 
             retrainWindow.ShowDialog();
         }

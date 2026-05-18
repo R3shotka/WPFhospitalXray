@@ -14,12 +14,14 @@ namespace WPFhospitalXray
         private readonly IDatasetService _datasetService;
         private readonly IApplicationPathService _pathService;
         private readonly IDatasetExportService _datasetExportService;
+        private readonly IModelTrainingService _modelTrainingService;
 
         public RetrainManagerWindow(
             IRetrainingRequestService requestService,
             IDatasetService datasetService,
             IApplicationPathService pathService,
-            IDatasetExportService datasetExportService)
+            IDatasetExportService datasetExportService,
+            IModelTrainingService modelTrainingService)
         {
             InitializeComponent();
 
@@ -27,6 +29,7 @@ namespace WPFhospitalXray
             _datasetService = datasetService;
             _pathService = pathService;
             _datasetExportService = datasetExportService;
+            _modelTrainingService = modelTrainingService;
 
             _ = LoadRequestsAsync();
         }
@@ -130,14 +133,55 @@ namespace WPFhospitalXray
             }
         }
 
-        private void btn_StartRetrain_Click(object sender, RoutedEventArgs e)
+        private async void btn_StartRetrain_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show(
-                "Локальне донавчання моделі передбачено як окремий етап після формування датасету. " +
-                "У наступній версії цей режим запускатиме локальний Python-скрипт навчання YOLO-моделі та реєструватиме нову версію моделі після перевірки якості.",
+            var confirmation = MessageBox.Show(
+                "Запустити локальне донавчання моделі на основі останнього сформованого датасету?\n\n" +
+                "Цей процес може тривати довго і має виконуватися на адміністративному ПК або технічній машині.",
                 "Локальне донавчання ШІ",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (confirmation != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            try
+            {
+                btn_StartRetrain.IsEnabled = false;
+                btn_StartRetrain.Content = "Навчання...";
+
+                var result = await _modelTrainingService.StartTrainingAsync();
+
+                string message =
+                    $"{result.Message}\n\n" +
+                    $"Папка запуску: {result.TrainingRunPath}";
+
+                if (result.ModelVersionId != null)
+                {
+                    message += $"\nID моделі-кандидата: {result.ModelVersionId}";
+                }
+
+                MessageBox.Show(
+                    message,
+                    result.IsSuccess ? "Донавчання завершено" : "Донавчання не запущено",
+                    MessageBoxButton.OK,
+                    result.IsSuccess ? MessageBoxImage.Information : MessageBoxImage.Warning);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Помилка запуску донавчання:\n{ex.Message}",
+                    "Помилка",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                btn_StartRetrain.IsEnabled = true;
+                btn_StartRetrain.Content = "🚀 Запустити донавчання ШІ";
+            }
         }
 
         private async void btn_ExportDataset_Click(object sender, RoutedEventArgs e)

@@ -32,6 +32,7 @@ namespace DAL.DBContext
 
         public DbSet<AnalysisResult> AnalysisResults { get; set; }
         public DbSet<DetectionBox> DetectionBoxes { get; set; }
+        public DbSet<ModelVersion> ModelVersions { get; set; }
 
        
 
@@ -246,6 +247,49 @@ namespace DAL.DBContext
                       .WithMany(a => a.DetectionBoxes)
                       .HasForeignKey(d => d.AnalysisResultId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<ModelVersion>(entity =>
+            {
+                entity.HasKey(m => m.Id);
+
+                entity.Property(m => m.ModelName)
+                      .IsRequired()
+                      .HasMaxLength(100);
+
+                entity.Property(m => m.Version)
+                      .IsRequired()
+                      .HasMaxLength(100);
+
+                entity.Property(m => m.OnnxPath)
+                      .IsRequired()
+                      .HasMaxLength(500);
+
+                entity.Property(m => m.PtPath)
+                      .HasMaxLength(500);
+
+                entity.Property(m => m.TrainingDatasetPath)
+                      .HasMaxLength(500);
+
+                entity.Property(m => m.OldDatasetPath)
+                      .HasMaxLength(500);
+
+                entity.Property(m => m.TrainingRunPath)
+                      .HasMaxLength(500);
+
+                entity.Property(m => m.ExperimentName)
+                      .HasMaxLength(100);
+
+                entity.Property(m => m.Status)
+                      .IsRequired()
+                      .HasConversion<string>()
+                      .HasMaxLength(20);
+
+                entity.Property(m => m.Comment)
+                      .HasMaxLength(1000);
+
+                entity.HasIndex(m => m.Version)
+                      .IsUnique();
             });
         }
     }

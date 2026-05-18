@@ -79,6 +79,10 @@ namespace WPFhospitalXray
             services.AddScoped<IAnalysisResult, AnalysisResultRepository>();
             services.AddScoped<IAnalysisResultService, AnalysisResultService>();
 
+            services.AddScoped<IModelVersion, ModelVersionRepository>();
+            services.AddScoped<IModelVersionService, ModelVersionService>();
+            services.AddScoped<IModelTrainingService, ModelTrainingService>();
+
             // ----------------------------------
 
             // Реєстрація вікон
