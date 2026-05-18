@@ -14,7 +14,7 @@ namespace BLL.Service
 {
     public class AIAnalyzerService : IAIAnalyzerService
     {
-        private const int ModelInputSize = 768;
+        private const int DefaultModelInputSize = 640;
         private readonly string[] _classes = { "fracture" };
 
         private readonly IModelVersionService _modelVersionService;
@@ -49,18 +49,22 @@ namespace BLL.Service
             }
 
             using var session = new InferenceSession(modelPath);
+            var inputShape = GetModelInputShape(session);
+            string inputName = inputShape.InputName;
+            int inputWidth = inputShape.Width;
+            int inputHeight = inputShape.Height;
 
             using var image = new Bitmap(imagePath);
             int originalWidth = image.Width;
             int originalHeight = image.Height;
 
-            float scale = Math.Min((float)ModelInputSize / originalWidth, (float)ModelInputSize / originalHeight);
+            float scale = Math.Min((float)inputWidth / originalWidth, (float)inputHeight / originalHeight);
             int newWidth = (int)(originalWidth * scale);
             int newHeight = (int)(originalHeight * scale);
-            int xPad = (ModelInputSize - newWidth) / 2;
-            int yPad = (ModelInputSize - newHeight) / 2;
+            int xPad = (inputWidth - newWidth) / 2;
+            int yPad = (inputHeight - newHeight) / 2;
 
-            using var paddedImage = new Bitmap(ModelInputSize, ModelInputSize);
+            using var paddedImage = new Bitmap(inputWidth, inputHeight);
             using (var g = Graphics.FromImage(paddedImage))
             {
                 g.Clear(Color.Black);
@@ -68,11 +72,11 @@ namespace BLL.Service
                 g.DrawImage(image, xPad, yPad, newWidth, newHeight);
             }
 
-            var tensor = new DenseTensor<float>(new[] { 1, 3, ModelInputSize, ModelInputSize });
+            var tensor = new DenseTensor<float>(new[] { 1, 3, inputHeight, inputWidth });
 
-            for (int y = 0; y < ModelInputSize; y++)
+            for (int y = 0; y < inputHeight; y++)
             {
-                for (int x = 0; x < ModelInputSize; x++)
+                for (int x = 0; x < inputWidth; x++)
                 {
                     var pixel = paddedImage.GetPixel(x, y);
 
@@ -84,7 +88,7 @@ namespace BLL.Service
 
             var inputs = new List<NamedOnnxValue>
             {
-                NamedOnnxValue.CreateFromTensor("images", tensor)
+                NamedOnnxValue.CreateFromTensor(inputName, tensor)
             };
 
             using var results = session.Run(inputs);
@@ -174,6 +178,28 @@ namespace BLL.Service
 
             return finalDetections;
         }
+
+        private static ModelInputShape GetModelInputShape(InferenceSession session)
+        {
+            var input = session.InputMetadata.FirstOrDefault();
+
+            if (string.IsNullOrWhiteSpace(input.Key))
+            {
+                return new ModelInputShape("images", DefaultModelInputSize, DefaultModelInputSize);
+            }
+
+            var dimensions = input.Value.Dimensions;
+            int height = dimensions.Length > 2 && dimensions[2] > 0
+                ? dimensions[2]
+                : DefaultModelInputSize;
+            int width = dimensions.Length > 3 && dimensions[3] > 0
+                ? dimensions[3]
+                : DefaultModelInputSize;
+
+            return new ModelInputShape(input.Key, width, height);
+        }
+
+        private sealed record ModelInputShape(string InputName, int Width, int Height);
 
         private float CalculateIoU(FractureDetectionDto boxA, FractureDetectionDto boxB)
         {
