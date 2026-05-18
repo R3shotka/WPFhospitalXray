@@ -25,133 +25,168 @@ namespace BLL.Service
 
         public async Task<ModelTrainingResultDto> StartTrainingAsync()
         {
-            var activeModel = await _modelVersionService.GetActiveOrCreateDefaultAsync();
+            string runPath = string.Empty;
 
-            if (string.IsNullOrWhiteSpace(activeModel.PtPath) || !File.Exists(activeModel.PtPath))
+            try
             {
-                return new ModelTrainingResultDto
+                var activeModel = await _modelVersionService.GetActiveOrCreateDefaultAsync();
+
+                if (string.IsNullOrWhiteSpace(activeModel.PtPath) || !File.Exists(activeModel.PtPath))
                 {
-                    IsSuccess = false,
-                    Message = "Для донавчання потрібен .pt-файл активної моделі. Для ONNX inference він не потрібен, але Ultralytics навчається саме з .pt."
+                    return new ModelTrainingResultDto
+                    {
+                        IsSuccess = false,
+                        Message = "Для донавчання потрібен .pt-файл активної моделі. ONNX використовується для inference, але Ultralytics навчається саме з .pt."
+                    };
+                }
+
+                string pythonExePath = GetRequiredConfiguration("Training:PythonExePath");
+                string trainingScriptPath = ResolveConfiguredPath(GetRequiredConfiguration("Training:TrainingScriptPath"));
+                string oldDatasetPath = ResolveConfiguredPath(GetRequiredConfiguration("Training:OldDatasetPath"));
+                string outputRoot = ResolveTrainingOutputRoot();
+                string experimentName = _configuration["Training:ExperimentName"] ?? "E5_mix_67old_33new_full";
+                string device = _configuration["Training:Device"] ?? "0";
+                string epochs = _configuration["Training:Epochs"] ?? "80";
+                string dryRun = _configuration["Training:DryRun"] ?? "false";
+
+                string newDatasetPath = FindLatestDatasetYaml();
+                runPath = Path.Combine(outputRoot, $"run_{DateTime.Now:yyyyMMdd_HHmmss}");
+
+                if (!IsExecutableAvailable(pythonExePath))
+                {
+                    return Failed($"Python не знайдено: {pythonExePath}", runPath);
+                }
+
+                if (!File.Exists(trainingScriptPath))
+                {
+                    return Failed($"Скрипт донавчання не знайдено: {trainingScriptPath}", runPath);
+                }
+
+                if (!File.Exists(oldDatasetPath))
+                {
+                    return Failed($"Старий data.yaml не знайдено: {oldDatasetPath}", runPath);
+                }
+
+                Directory.CreateDirectory(runPath);
+
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = pythonExePath,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
                 };
-            }
 
-            string pythonExePath = GetRequiredConfiguration("Training:PythonExePath");
-            string trainingScriptPath = GetRequiredConfiguration("Training:TrainingScriptPath");
-            string oldDatasetPath = GetRequiredConfiguration("Training:OldDatasetPath");
-            string outputRoot = _configuration["Training:OutputRoot"] ?? Path.Combine(_pathService.BaseDataFolder, "TrainingRuns");
-            string experimentName = _configuration["Training:ExperimentName"] ?? "E5_mix_67old_33new_full";
-            string device = _configuration["Training:Device"] ?? "0";
-            string epochs = _configuration["Training:Epochs"] ?? "80";
-            string dryRun = _configuration["Training:DryRun"] ?? "false";
+                startInfo.ArgumentList.Add(trainingScriptPath);
+                startInfo.ArgumentList.Add("--old-data");
+                startInfo.ArgumentList.Add(oldDatasetPath);
+                startInfo.ArgumentList.Add("--old-model");
+                startInfo.ArgumentList.Add(activeModel.PtPath);
+                startInfo.ArgumentList.Add("--new-data");
+                startInfo.ArgumentList.Add(newDatasetPath);
+                startInfo.ArgumentList.Add("--output-root");
+                startInfo.ArgumentList.Add(runPath);
+                startInfo.ArgumentList.Add("--experiment");
+                startInfo.ArgumentList.Add(experimentName);
+                startInfo.ArgumentList.Add("--device");
+                startInfo.ArgumentList.Add(device);
+                startInfo.ArgumentList.Add("--epochs");
+                startInfo.ArgumentList.Add(epochs);
+                startInfo.ArgumentList.Add("--dry-run");
+                startInfo.ArgumentList.Add(dryRun);
 
-            string newDatasetPath = FindLatestDatasetYaml();
-            string runPath = Path.Combine(outputRoot, $"run_{DateTime.Now:yyyyMMdd_HHmmss}");
-
-            if (!File.Exists(pythonExePath))
-            {
-                return Failed($"Python exe не знайдено: {pythonExePath}", runPath);
-            }
-
-            if (!File.Exists(trainingScriptPath))
-            {
-                return Failed($"Скрипт донавчання не знайдено: {trainingScriptPath}", runPath);
-            }
-
-            if (!File.Exists(oldDatasetPath))
-            {
-                return Failed($"Старий data.yaml не знайдено: {oldDatasetPath}", runPath);
-            }
-
-            Directory.CreateDirectory(runPath);
-
-            string arguments =
-                $"\"{trainingScriptPath}\" " +
-                $"--old-data \"{oldDatasetPath}\" " +
-                $"--old-model \"{activeModel.PtPath}\" " +
-                $"--new-data \"{newDatasetPath}\" " +
-                $"--output-root \"{runPath}\" " +
-                $"--experiment \"{experimentName}\" " +
-                $"--device \"{device}\" " +
-                $"--epochs \"{epochs}\" " +
-                $"--dry-run \"{dryRun}\"";
-
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = pythonExePath,
-                Arguments = arguments,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true
-            };
-
-            using var process = new Process
-            {
-                StartInfo = startInfo
-            };
-
-            process.Start();
-
-            string output = await process.StandardOutput.ReadToEndAsync();
-            string errorOutput = await process.StandardError.ReadToEndAsync();
-
-            await process.WaitForExitAsync();
-
-            if (process.ExitCode != 0)
-            {
-                return new ModelTrainingResultDto
+                using var process = new Process
                 {
-                    IsSuccess = false,
+                    StartInfo = startInfo
+                };
+
+                process.Start();
+
+                string output = await process.StandardOutput.ReadToEndAsync();
+                string errorOutput = await process.StandardError.ReadToEndAsync();
+
+                await process.WaitForExitAsync();
+
+                if (process.ExitCode != 0)
+                {
+                    return new ModelTrainingResultDto
+                    {
+                        IsSuccess = false,
+                        TrainingRunPath = runPath,
+                        Output = output,
+                        ErrorOutput = errorOutput,
+                        Message = $"Донавчання завершилось з помилкою. ExitCode: {process.ExitCode}"
+                    };
+                }
+
+                string resultPath = Path.Combine(runPath, "training_result.json");
+
+                if (!File.Exists(resultPath))
+                {
+                    return new ModelTrainingResultDto
+                    {
+                        IsSuccess = true,
+                        TrainingRunPath = runPath,
+                        Output = output,
+                        ErrorOutput = errorOutput,
+                        Message = "Скрипт завершився успішно, але training_result.json не знайдено. Якщо це був dry-run, модель-кандидат коректно не реєструється."
+                    };
+                }
+
+                var trainingResult = await ReadTrainingResultAsync(resultPath);
+
+                if (string.IsNullOrWhiteSpace(trainingResult.OnnxPath) || !File.Exists(trainingResult.OnnxPath))
+                {
+                    return Failed("Скрипт завершився, але ONNX-файл нової моделі не знайдено.", runPath, output, errorOutput);
+                }
+
+                if (string.IsNullOrWhiteSpace(trainingResult.PtPath) || !File.Exists(trainingResult.PtPath))
+                {
+                    return Failed("Скрипт завершився, але PT-файл нової моделі не знайдено.", runPath, output, errorOutput);
+                }
+
+                if (string.IsNullOrWhiteSpace(trainingResult.Version))
+                {
+                    return Failed("Скрипт завершився, але не повернув версію нової моделі.", runPath, output, errorOutput);
+                }
+
+                int modelVersionId = await _modelVersionService.RegisterCandidateAsync(new RegisterModelVersionDto
+                {
+                    ModelName = trainingResult.ModelName,
+                    Version = trainingResult.Version,
+                    OnnxPath = trainingResult.OnnxPath,
+                    PtPath = trainingResult.PtPath,
+                    TrainingDatasetPath = newDatasetPath,
+                    OldDatasetPath = oldDatasetPath,
                     TrainingRunPath = runPath,
-                    Output = output,
-                    ErrorOutput = errorOutput,
-                    Message = $"Донавчання завершилось з помилкою. ExitCode: {process.ExitCode}"
-                };
-            }
+                    ExperimentName = experimentName,
+                    Precision = trainingResult.Precision,
+                    Recall = trainingResult.Recall,
+                    Map50 = trainingResult.Map50,
+                    Map5095 = trainingResult.Map5095,
+                    Comment = "Модель-кандидат створена після локального донавчання. Основні метрики взято з combined_test."
+                });
 
-            string resultPath = Path.Combine(runPath, "training_result.json");
-
-            if (!File.Exists(resultPath))
-            {
                 return new ModelTrainingResultDto
                 {
                     IsSuccess = true,
+                    ModelVersionId = modelVersionId,
                     TrainingRunPath = runPath,
                     Output = output,
                     ErrorOutput = errorOutput,
-                    Message = "Скрипт завершився успішно, але training_result.json не знайдено. Модель-кандидат не зареєстровано автоматично."
+                    Message = "Донавчання завершено. Нову модель зареєстровано як кандидат."
                 };
             }
-
-            var trainingResult = await ReadTrainingResultAsync(resultPath);
-
-            int modelVersionId = await _modelVersionService.RegisterCandidateAsync(new RegisterModelVersionDto
+            catch (Exception ex)
             {
-                ModelName = trainingResult.ModelName,
-                Version = trainingResult.Version,
-                OnnxPath = trainingResult.OnnxPath,
-                PtPath = trainingResult.PtPath,
-                TrainingDatasetPath = newDatasetPath,
-                OldDatasetPath = oldDatasetPath,
-                TrainingRunPath = runPath,
-                ExperimentName = experimentName,
-                Precision = trainingResult.Precision,
-                Recall = trainingResult.Recall,
-                Map50 = trainingResult.Map50,
-                Map5095 = trainingResult.Map5095,
-                Comment = "Модель-кандидат створена після локального донавчання."
-            });
-
-            return new ModelTrainingResultDto
-            {
-                IsSuccess = true,
-                ModelVersionId = modelVersionId,
-                TrainingRunPath = runPath,
-                Output = output,
-                ErrorOutput = errorOutput,
-                Message = "Донавчання завершено. Нову модель зареєстровано як кандидат."
-            };
+                return new ModelTrainingResultDto
+                {
+                    IsSuccess = false,
+                    TrainingRunPath = runPath,
+                    Message = $"Помилка запуску донавчання: {ex.Message}"
+                };
+            }
         }
 
         private string FindLatestDatasetYaml()
@@ -174,10 +209,32 @@ namespace BLL.Service
 
             if (!File.Exists(dataYamlPath))
             {
-                throw new FileNotFoundException("У останньому датасеті не знайдено data.yaml.", dataYamlPath);
+                throw new FileNotFoundException("В останньому датасеті не знайдено data.yaml.", dataYamlPath);
             }
 
             return dataYamlPath;
+        }
+
+        private string ResolveTrainingOutputRoot()
+        {
+            string configuredPath = _configuration["Training:OutputRoot"] ?? Path.Combine(_pathService.BaseDataFolder, "TrainingRuns");
+
+            if (Path.IsPathRooted(configuredPath))
+            {
+                return configuredPath;
+            }
+
+            return Path.Combine(_pathService.BaseDataFolder, configuredPath);
+        }
+
+        private static string ResolveConfiguredPath(string path)
+        {
+            if (Path.IsPathRooted(path))
+            {
+                return path;
+            }
+
+            return Path.Combine(AppContext.BaseDirectory, path);
         }
 
         private string GetRequiredConfiguration(string key)
@@ -186,12 +243,24 @@ namespace BLL.Service
                 ?? throw new InvalidOperationException($"Не задано конфігурацію '{key}'.");
         }
 
-        private static ModelTrainingResultDto Failed(string message, string runPath)
+        private static bool IsExecutableAvailable(string executablePath)
+        {
+            if (Path.IsPathRooted(executablePath) || executablePath.Contains(Path.DirectorySeparatorChar) || executablePath.Contains(Path.AltDirectorySeparatorChar))
+            {
+                return File.Exists(executablePath);
+            }
+
+            return !string.IsNullOrWhiteSpace(executablePath);
+        }
+
+        private static ModelTrainingResultDto Failed(string message, string runPath, string output = "", string errorOutput = "")
         {
             return new ModelTrainingResultDto
             {
                 IsSuccess = false,
                 TrainingRunPath = runPath,
+                Output = output,
+                ErrorOutput = errorOutput,
                 Message = message
             };
         }
