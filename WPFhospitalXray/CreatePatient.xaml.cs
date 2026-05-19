@@ -15,7 +15,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using System.ComponentModel.DataAnnotations;
 
 namespace WPFhospitalXray
 {
@@ -48,12 +47,12 @@ namespace WPFhospitalXray
                 // 2. Збираємо дані. Ніяких "?? DateTime.Now" більше немає!
                 var newPatient = new CreatePatientDto
                 {
-                    Id = Passport_textbox.Text,
-                    FullName = FullName_textbox.Text,
-                    Phone = phone_textbox.Text,
-                    Address = Adress_textbox.Text,
+                    Id = Passport_textbox.Text.Trim(),
+                    FullName = FullName_textbox.Text.Trim(),
+                    Phone = phone_textbox.Text.Trim(),
+                    Address = Adress_textbox.Text.Trim(),
                     DateOfBirth = BirthDate_picker.SelectedDate, // Передаємо як є
-                    Sex = selectedSex // Передаємо null, якщо порожньо
+                    Sex = selectedSex ?? string.Empty
                 };
 
                 // 2. МАГІЯ DATA ANNOTATIONS: Перевіряємо об'єкт
