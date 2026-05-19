@@ -81,12 +81,12 @@ namespace WPFhospitalXray
                 // 2. Збираємо дані. Ніяких "?? DateTime.Now" більше немає!
                 var updateDto = new EditPatientDto
                 {
-                    Id = Passport_textbox.Text,
-                    FullName = FullName_textbox.Text,
-                    Phone = phone_textbox.Text,
-                    Address = Adress_textbox.Text,
+                    Id = Passport_textbox.Text.Trim(),
+                    FullName = FullName_textbox.Text.Trim(),
+                    Phone = phone_textbox.Text.Trim(),
+                    Address = Adress_textbox.Text.Trim(),
                     DateOfBirth = BirthDate_picker.SelectedDate, // Передаємо як є
-                    Sex = selectedSex // Передаємо null, якщо порожньо
+                    Sex = selectedSex ?? string.Empty
                 };
 
                 // 3. МАГІЯ ВАЛІДАЦІЇ (Data Annotations)

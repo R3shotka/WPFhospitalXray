@@ -25,7 +25,7 @@ namespace BLL.DTOs.Patients
         public DateTime? DateOfBirth { get; set; }
 
         [Required(ErrorMessage = "Номер телефону є обов'язковим!")]
-        [Phone(ErrorMessage = "Невірний формат номеру телефону.")]
+        [RegularExpression(@"^(\+380\d{9}|0\d{9})$", ErrorMessage = "Номер телефону має бути у форматі +380XXXXXXXXX або 0XXXXXXXXX.")]
         public string Phone { get; set; }
 
         [Required(ErrorMessage = "Адреса є обов'язковою!")]
