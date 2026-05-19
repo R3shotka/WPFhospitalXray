@@ -108,6 +108,9 @@ namespace BLL.Service
 
                 await process.WaitForExitAsync();
 
+                await File.WriteAllTextAsync(Path.Combine(runPath, "stdout.txt"), output);
+                await File.WriteAllTextAsync(Path.Combine(runPath, "stderr.txt"), errorOutput);
+
                 if (process.ExitCode != 0)
                 {
                     return new ModelTrainingResultDto

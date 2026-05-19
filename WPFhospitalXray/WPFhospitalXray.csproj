@@ -9,24 +9,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Models\best.onnx" />
-    <None Remove="Models\best1.onnx" />
-    <None Remove="Models\best1.pt" />
     <None Remove="Scripts\retrain_yolo.py" />
   </ItemGroup>
 
  
 
   <ItemGroup>
-    <Content Include="Models\best.onnx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Models\best1.onnx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Models\best1.pt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Include="Scripts\retrain_yolo.py">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
