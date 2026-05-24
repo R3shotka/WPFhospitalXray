@@ -151,6 +151,10 @@
                                 Background="#D32F2F" Foreground="White" Height="35" Padding="15,0"
                                 Margin="0,0,10,0" Visibility="Collapsed" Click="btn_ClearPoints_Click"/>
 
+                        <Button x:Name="btn_AddFracture" Content="➕ Додати ще перелом" 
+                                Background="#6785B0" Foreground="White" Height="35" Padding="15,0"
+                                Margin="0,0,10,0" Visibility="Collapsed" Click="btn_AddFracture_Click"/>
+
                         <Button x:Name="btn_SaveForRetrain" Content="💾 Зберегти для навчання" 
                                 Background="#4CAF50" Foreground="White" Height="35" Padding="15,0"
                                 Visibility="Collapsed" Click="btn_SaveForRetrain_Click"/>

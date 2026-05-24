@@ -48,12 +48,18 @@ namespace WPFhospitalXray
                     // 4. Якщо файл існує - малюємо зелений контур
                     if (File.Exists(txtFilePath))
                     {
-                        string yoloText = File.ReadAllText(txtFilePath).Trim();
-                        string[] parts = yoloText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                        string[] labelLines = File.ReadAllLines(txtFilePath);
 
-                        // Формат YOLO: "Клас X1 Y1 X2 Y2 ...". Потрібно мінімум 1 клас + 3 точки (разом 7 елементів)
-                        if (parts.Length >= 7)
+                        foreach (var labelLine in labelLines)
                         {
+                            string[] parts = labelLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                            // Формат YOLO: "Клас X1 Y1 X2 Y2 ...". Потрібно мінімум 1 клас + 3 точки (разом 7 елементів)
+                            if (parts.Length < 7 || (parts.Length - 1) % 2 != 0)
+                            {
+                                continue;
+                            }
+
                             StreamGeometry geometry = new StreamGeometry();
                             using (StreamGeometryContext ctx = geometry.Open())
                             {

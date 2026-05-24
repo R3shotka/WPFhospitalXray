@@ -5,6 +5,7 @@ using BLL.Interface;
 using DAL.Entity;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -41,6 +42,7 @@ namespace WPFhospitalXray
         private BitmapImage _originalImage;
         private RenderTargetBitmap _aiImage;
         private List<Point> _polygonPoints = new List<Point>();
+        private List<List<Point>> _completedPolygons = new List<List<Point>>();
 
         private AnalysisReviewStatus? _currentAnalysisStatus;
         private List<FractureDetectionDto> _currentDetections = new List<FractureDetectionDto>();
@@ -89,6 +91,7 @@ namespace WPFhospitalXray
             btn_StartManual.Visibility = Visibility.Collapsed;
 
             btn_ClearPoints.Visibility = Visibility.Collapsed;
+            btn_AddFracture.Visibility = Visibility.Collapsed;
             btn_SaveForRetrain.Visibility = Visibility.Collapsed;
             tb_LiveLabel.Visibility = Visibility.Collapsed;
             DrawingCanvas.Visibility = Visibility.Collapsed;
@@ -235,9 +238,9 @@ namespace WPFhospitalXray
 
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            if (_polygonPoints != null && _polygonPoints.Count > 0)
+            if ((_polygonPoints != null && _polygonPoints.Count > 0) || _completedPolygons.Count > 0)
             {
-                btn_ClearPoints_Click(null, null);
+                ClearManualMarkup();
                 tb_AIResult.Text = "⚠️ Розмір вікна змінено. Координати збилися. Будь ласка, обведіть перелом заново.";
                 tb_AIResult.Foreground = new SolidColorBrush(Colors.Red);
             }
@@ -263,10 +266,11 @@ namespace WPFhospitalXray
             DrawingCanvas.Visibility = Visibility.Visible;
             tb_LiveLabel.Visibility = Visibility.Visible;
             btn_ClearPoints.Visibility = Visibility.Visible;
+            btn_AddFracture.Visibility = Visibility.Visible;
             btn_SaveForRetrain.Visibility = Visibility.Visible;
             btn_StartManual.Visibility = Visibility.Collapsed;
 
-            tb_AIResult.Text = "Клікайте по контуру перелому (мінімум 3 точки)";
+            tb_AIResult.Text = "Клікайте по контуру перелому. Для окремої ділянки натисніть \"Додати ще перелом\".";
         }
 
         private void DrawingCanvas_MouseDown(object sender, MouseButtonEventArgs e)
@@ -281,7 +285,8 @@ namespace WPFhospitalXray
                 Height = 6,
                 Fill = Brushes.Yellow,
                 Stroke = Brushes.Red,
-                StrokeThickness = 1
+                StrokeThickness = 1,
+                Tag = "ManualMarkup"
             };
             Canvas.SetLeft(dot, clickPoint.X - 3);
             Canvas.SetTop(dot, clickPoint.Y - 3);
@@ -292,8 +297,106 @@ namespace WPFhospitalXray
 
         private void UpdateLiveLabel()
         {
-            if (_polygonPoints.Count == 0) return;
+            tb_LiveLabel.Text = BuildYoloLabel(includeCurrentPolygon: true);
+        }
 
+        private void btn_ClearPoints_Click(object sender, RoutedEventArgs e)
+        {
+            ClearManualMarkup();
+        }
+
+        private void btn_AddFracture_Click(object sender, RoutedEventArgs e)
+        {
+            if (TryCompleteCurrentPolygon(showWarning: true))
+            {
+                tb_AIResult.Text = $"Контур перелому додано. Усього контурів: {_completedPolygons.Count}. Можна обвести ще одну ділянку або зберегти розмітку.";
+                tb_AIResult.Foreground = new SolidColorBrush(Color.FromRgb(82, 102, 129));
+            }
+        }
+
+        private bool TryCompleteCurrentPolygon(bool showWarning)
+        {
+            if (_polygonPoints.Count == 0)
+            {
+                return false;
+            }
+
+            if (_polygonPoints.Count < 3)
+            {
+                if (showWarning)
+                {
+                    MessageBox.Show("Для одного контуру потрібно мінімум 3 точки.", "Увага");
+                }
+
+                return false;
+            }
+
+            var completedPolygon = _polygonPoints.ToList();
+            _completedPolygons.Add(completedPolygon);
+            DrawCompletedPolygon(completedPolygon);
+
+            _polygonPoints.Clear();
+            DrawPolygon.Points.Clear();
+            tb_LiveLabel.Text = BuildYoloLabel(includeCurrentPolygon: true);
+
+            return true;
+        }
+
+        private void DrawCompletedPolygon(List<Point> points)
+        {
+            var polygon = new System.Windows.Shapes.Polygon
+            {
+                Stroke = Brushes.LimeGreen,
+                StrokeThickness = 3,
+                Fill = new SolidColorBrush(Color.FromArgb(45, 50, 205, 50)),
+                Tag = "ManualMarkup"
+            };
+
+            foreach (var point in points)
+            {
+                polygon.Points.Add(point);
+            }
+
+            DrawingCanvas.Children.Add(polygon);
+        }
+
+        private void ClearManualMarkup()
+        {
+            _polygonPoints.Clear();
+            _completedPolygons.Clear();
+            DrawPolygon.Points.Clear();
+            tb_LiveLabel.Text = "";
+
+            var manualShapes = DrawingCanvas.Children
+                .OfType<FrameworkElement>()
+                .Where(child => Equals(child.Tag, "ManualMarkup"))
+                .ToList();
+
+            foreach (var shape in manualShapes)
+            {
+                DrawingCanvas.Children.Remove(shape);
+            }
+        }
+
+        private string BuildYoloLabel(bool includeCurrentPolygon)
+        {
+            var labelLines = new List<string>();
+
+            foreach (var polygon in _completedPolygons)
+            {
+                labelLines.Add(ConvertPolygonToYoloLine(polygon));
+            }
+
+            if (includeCurrentPolygon && _polygonPoints.Count > 0)
+            {
+                labelLines.Add(ConvertPolygonToYoloLine(_polygonPoints));
+            }
+
+            return string.Join(Environment.NewLine, labelLines);
+        }
+
+        private string ConvertPolygonToYoloLine(List<Point> points)
+        {
             double canvasW = DrawingCanvas.ActualWidth;
             double canvasH = DrawingCanvas.ActualHeight;
             double imgW = _originalImage.PixelWidth;
@@ -305,31 +408,18 @@ namespace WPFhospitalXray
 
             string yoloString = "0";
 
-            foreach (var p in _polygonPoints)
+            foreach (var point in points)
             {
-                double actualX = (p.X - offsetX) / ratio;
-                double actualY = (p.Y - offsetY) / ratio;
+                double actualX = (point.X - offsetX) / ratio;
+                double actualY = (point.Y - offsetY) / ratio;
 
                 double normX = Math.Clamp(actualX / imgW, 0.0, 1.0);
                 double normY = Math.Clamp(actualY / imgH, 0.0, 1.0);
 
-                yoloString += $" {normX.ToString(System.Globalization.CultureInfo.InvariantCulture)} {normY.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+                yoloString += $" {normX.ToString(CultureInfo.InvariantCulture)} {normY.ToString(CultureInfo.InvariantCulture)}";
             }
 
-            tb_LiveLabel.Text = yoloString;
-        }
-
-        private void btn_ClearPoints_Click(object sender, RoutedEventArgs e)
-        {
-            _polygonPoints.Clear();
-            DrawPolygon.Points.Clear();
-            tb_LiveLabel.Text = "";
-
-            var ellipses = DrawingCanvas.Children.OfType<System.Windows.Shapes.Ellipse>().ToList();
-            foreach (var dot in ellipses)
-            {
-                DrawingCanvas.Children.Remove(dot);
-            }
+            return yoloString;
         }
 
         // НОВЕ: Оновлена логіка збереження
@@ -348,9 +438,20 @@ namespace WPFhospitalXray
                 return;
             }
 
-            if (_polygonPoints.Count < 3)
+            if (_polygonPoints.Count > 0 && _polygonPoints.Count < 3)
             {
-                MessageBox.Show("Для полігону потрібно мінімум 3 точки!", "Увага");
+                MessageBox.Show("Поточний контур не завершено. Для одного контуру потрібно мінімум 3 точки.", "Увага");
+                return;
+            }
+
+            if (_polygonPoints.Count >= 3)
+            {
+                TryCompleteCurrentPolygon(showWarning: false);
+            }
+
+            if (_completedPolygons.Count == 0)
+            {
+                MessageBox.Show("Для збереження потрібно розмітити хоча б один контур перелому.", "Увага");
                 return;
             }
 
@@ -359,7 +460,7 @@ namespace WPFhospitalXray
                 btn_SaveForRetrain.IsEnabled = false;
                 btn_SaveForRetrain.Content = "Збереження...";
 
-                string finalLabel = tb_LiveLabel.Text;
+                string finalLabel = BuildYoloLabel(includeCurrentPolygon: false);
                 await _datasetService.SaveSegmentationDataAsync(CurrentImagePath, finalLabel);
 
                 RetrainingRequestType requestType =
@@ -367,9 +468,10 @@ namespace WPFhospitalXray
                         ? RetrainingRequestType.FalseNegative
                         : RetrainingRequestType.CorrectedPositive;
 
+                int totalPointCount = _completedPolygons.Sum(polygon => polygon.Count);
                 string comment = requestType == RetrainingRequestType.FalseNegative
-                    ? $"False Negative: ШІ не виявив перелом, але лікар вручну розмітив його. Точок полігону: {_polygonPoints.Count}"
-                    : $"Corrected Positive: лікар скоригував локалізацію перелому. Точок полігону: {_polygonPoints.Count}";
+                    ? $"False Negative: ШІ не виявив перелом, але лікар вручну розмітив його. Контурів: {_completedPolygons.Count}, точок: {totalPointCount}"
+                    : $"Corrected Positive: лікар скоригував локалізацію перелому. Контурів: {_completedPolygons.Count}, точок: {totalPointCount}";
 
                 bool requestCreated = await _requestService.CreateRequestForImageAsync(
                         _examinationId,
@@ -388,11 +490,12 @@ namespace WPFhospitalXray
                     MarkAnalysisAsFinal(AnalysisReviewStatus.Corrected);
                 }
 
-                btn_ClearPoints_Click(null, null);
+                ClearManualMarkup();
 
                 DrawingCanvas.Visibility = Visibility.Collapsed;
                 tb_LiveLabel.Visibility = Visibility.Collapsed;
                 btn_ClearPoints.Visibility = Visibility.Collapsed;
+                btn_AddFracture.Visibility = Visibility.Collapsed;
                 btn_SaveForRetrain.Visibility = Visibility.Collapsed;
 
                 tb_AIResult.Text += "\nСтатус: скориговано лікарем.";
@@ -632,19 +735,12 @@ namespace WPFhospitalXray
             _currentDetections = new List<FractureDetectionDto>();
             _aiImage = null;
 
-            _polygonPoints.Clear();
-            DrawPolygon.Points.Clear();
-            tb_LiveLabel.Text = "";
-
-            var ellipses = DrawingCanvas.Children.OfType<System.Windows.Shapes.Ellipse>().ToList();
-            foreach (var dot in ellipses)
-            {
-                DrawingCanvas.Children.Remove(dot);
-            }
+            ClearManualMarkup();
 
             DrawingCanvas.Visibility = Visibility.Collapsed;
             tb_LiveLabel.Visibility = Visibility.Collapsed;
             btn_ClearPoints.Visibility = Visibility.Collapsed;
+            btn_AddFracture.Visibility = Visibility.Collapsed;
             btn_SaveForRetrain.Visibility = Visibility.Collapsed;
 
             cb_ShowMarkup.IsChecked = false;
@@ -726,6 +822,7 @@ namespace WPFhospitalXray
             if (!canReview)
             {
                 btn_ClearPoints.Visibility = Visibility.Collapsed;
+                btn_AddFracture.Visibility = Visibility.Collapsed;
                 btn_SaveForRetrain.Visibility = Visibility.Collapsed;
                 tb_LiveLabel.Visibility = Visibility.Collapsed;
                 DrawingCanvas.Visibility = Visibility.Collapsed;
