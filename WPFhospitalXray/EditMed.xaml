@@ -26,8 +26,8 @@
 
 
                 <Grid Margin="70 4 70 0">
-                    <Button x:Name="deleteStuff_btn" Click="DeleteStuff_btn" Background="#4B7DC0" BorderThickness="0" Content="Видалити"   Margin="40 10 10 10" HorizontalAlignment="Left" VerticalAlignment="Bottom"/>
-                    <Button x:Name="editStuff_btn" Click="EditStuff_btn" Content="Редагувати" BorderThickness="0" Background="#4B7DC0"   Margin="10 10 40 10" HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
+                    <Button x:Name="deleteStuff_btn" Click="DeleteStuff_btn" Background="#4B7DC0" Foreground="White" BorderThickness="0" Content="Видалити"   Margin="40 10 10 10" HorizontalAlignment="Left" VerticalAlignment="Bottom"/>
+                    <Button x:Name="editStuff_btn" Click="EditStuff_btn" Content="Редагувати" BorderThickness="0" Background="#4B7DC0" Foreground="White"  Margin="10 10 40 10" HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
                 </Grid>
 
             </StackPanel>
