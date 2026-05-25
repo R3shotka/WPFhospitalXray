@@ -114,6 +114,20 @@ namespace BLL.Service
             await _patientRepository.UpdateAsync(patientToUpdate);
         }
 
+        public async Task UpdatePatientStatusAsync(string id, string status)
+        {
+            var patientToUpdate = await _patientRepository.GetByIdAsync(id);
+
+            if (patientToUpdate == null)
+            {
+                throw new Exception("Пацієнта не знайдено в базі!");
+            }
+
+            patientToUpdate.Status = status;
+
+            await _patientRepository.UpdateAsync(patientToUpdate);
+        }
+
         public async Task DeletePatientAsync(string id)
         {
             await _patientRepository.DeleteAsync(id);

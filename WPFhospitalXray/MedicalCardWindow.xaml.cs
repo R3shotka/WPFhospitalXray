@@ -237,6 +237,7 @@ namespace WPFhospitalXray
 
                 // Створюємо порожнє обстеження
                 await _examinationService.CreateEmptyExaminationAsync(_medicalCardId);
+                await _patientService.UpdatePatientStatusAsync(_patientId, "Очікує висновку");
 
                 // Оновлюємо таблицю, щоб лікар одразу побачив новий рядок!
                 await LoadExaminationsAsync();
@@ -483,6 +484,11 @@ namespace WPFhospitalXray
 
                 // ПЕРЕДАЄМО ДАНІ У СЕРВІС!
                 await _conclusionService.SaveOrUpdateConclusionAsync(selectedExam.Id, _currentRole, textToSave, _currentUserId);
+
+                if (_rolePermissionService.CanWriteSurgeonConclusion(_currentRole))
+                {
+                    await _patientService.UpdatePatientStatusAsync(_patientId, "Висновок отримано");
+                }
 
                 MessageBox.Show("Висновок успішно збережено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
 

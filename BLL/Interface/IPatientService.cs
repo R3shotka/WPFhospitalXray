@@ -18,6 +18,7 @@ namespace BLL.Interface
 
         Task CreatePatientAsync(CreatePatientDto dto);
         Task UpdatePatientAsync(EditPatientDto dto);
+        Task UpdatePatientStatusAsync(string id, string status);
         Task DeletePatientAsync(string id);
     }
 }
